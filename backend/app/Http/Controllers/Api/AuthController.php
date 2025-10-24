@@ -40,6 +40,9 @@ class AuthController extends Controller
             'is_verified' => false,
         ]);
 
+        // Assign default 'user' role to new registrations
+        $user->assignRole('user');
+
         return response()->json([
             'message' => 'Registration successful! Please login.',
             'user' => [
@@ -124,6 +127,7 @@ class AuthController extends Controller
     public function user(Request $request)
     {
         $user = $request->user();
+        $user->load('roles.permissions', 'primaryRole');
         $recentLogins = $user->recentLoginLogs(5);
 
         return response()->json([
@@ -135,6 +139,29 @@ class AuthController extends Controller
                 'two_factor_enabled' => $user->two_factor_enabled,
                 'last_login_at' => $user->last_login_at,
                 'last_login_ip' => $user->last_login_ip,
+                'roles' => $user->roles->map(function ($role) {
+                    return [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'slug' => $role->slug,
+                    ];
+                }),
+                'primary_role' => $user->primaryRole ? [
+                    'id' => $user->primaryRole->id,
+                    'name' => $user->primaryRole->name,
+                    'slug' => $user->primaryRole->slug,
+                ] : null,
+                'permissions' => $user->getAllPermissions()->map(function ($permission) {
+                    return [
+                        'id' => $permission->id,
+                        'name' => $permission->name,
+                        'slug' => $permission->slug,
+                        'resource' => $permission->resource,
+                        'action' => $permission->action,
+                    ];
+                }),
+                'is_admin' => $user->isAdmin(),
+                'is_super_admin' => $user->isSuperAdmin(),
             ],
             'recent_logins' => $recentLogins->map(function ($log) {
                 return [
