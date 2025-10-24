@@ -3,15 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\Permission\Models\Permission as SpatiePermission;
 
-class Permission extends Model
+class Permission extends SpatiePermission
 {
     use HasFactory;
 
     /**
      * The attributes that are mass assignable.
+     * Spatie handles name and guard_name, we add our custom fields.
      *
      * @var array<int, string>
      */
@@ -19,31 +19,7 @@ class Permission extends Model
         'name',
         'slug',
         'description',
-        'resource',
-        'action',
+        'category',
+        'guard_name', // Required by Spatie
     ];
-
-    /**
-     * The roles that belong to the permission.
-     */
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class, 'permission_role')
-            ->withTimestamps();
-    }
-
-    /**
-     * Get all users with this permission through roles.
-     */
-    public function users(): array
-    {
-        return $this->roles()
-            ->with('users')
-            ->get()
-            ->pluck('users')
-            ->flatten()
-            ->unique('id')
-            ->values()
-            ->all();
-    }
 }
