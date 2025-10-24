@@ -9,6 +9,8 @@ const Users = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -30,7 +32,8 @@ const Users = () => {
     try {
       setLoading(true);
       const response = await api.get('/users');
-      setUsers(response.data.users || []);
+      // Handle paginated response from Laravel
+      setUsers(response.data.data || response.data.users || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch users');
     } finally {
@@ -56,6 +59,43 @@ const Users = () => {
       fetchUsers();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create user');
+    }
+  };
+
+  const handleEdit = (user) => {
+    setEditingUser(user);
+    setFormData({
+      full_name: user.full_name || user.name,
+      email: user.email,
+      mobile_number: user.mobile_number || '',
+      password: '', // Don't pre-fill password
+      role_id: user.roles?.[0]?.id || user.primary_role?.id || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const updateData = {
+        full_name: formData.full_name,
+        email: formData.email,
+        mobile_number: formData.mobile_number,
+        role_id: formData.role_id
+      };
+      
+      // Only include password if it's been changed
+      if (formData.password) {
+        updateData.password = formData.password;
+      }
+
+      await api.put(`/users/${editingUser.id}`, updateData);
+      setShowEditModal(false);
+      setEditingUser(null);
+      setFormData({ full_name: '', email: '', mobile_number: '', password: '', role_id: '' });
+      fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update user');
     }
   };
 
@@ -177,7 +217,12 @@ const Users = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
                         {canUpdate && (
-                          <button className="text-blue-600 hover:text-blue-900">Edit</button>
+                          <button 
+                            onClick={() => handleEdit(u)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            Edit
+                          </button>
                         )}
                         {canDelete && u.id !== user?.id && (
                           <button
@@ -265,6 +310,88 @@ const Users = () => {
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
+                    className="btn-secondary flex-1"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Edit User Modal */}
+        {showEditModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="card max-w-md w-full">
+              <h2 className="text-2xl font-bold mb-4">Edit User</h2>
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <div>
+                  <label className="label">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="input-field"
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="label">Email</label>
+                  <input
+                    type="email"
+                    required
+                    className="input-field"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="label">Mobile Number</label>
+                  <input
+                    type="tel"
+                    className="input-field"
+                    value={formData.mobile_number}
+                    onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="label">Password (leave blank to keep current)</label>
+                  <input
+                    type="password"
+                    className="input-field"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Leave blank to keep current password"
+                  />
+                </div>
+                <div>
+                  <label className="label">Role</label>
+                  <select
+                    required
+                    className="input-field"
+                    value={formData.role_id}
+                    onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
+                  >
+                    <option value="">Select a role</option>
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" className="btn-primary flex-1">
+                    Update User
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditingUser(null);
+                      setFormData({ full_name: '', email: '', mobile_number: '', password: '', role_id: '' });
+                    }}
                     className="btn-secondary flex-1"
                   >
                     Cancel

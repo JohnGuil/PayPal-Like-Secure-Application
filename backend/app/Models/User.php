@@ -59,6 +59,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Accessor for 'name' - returns full_name for backward compatibility
+     */
+    public function getNameAttribute()
+    {
+        return $this->full_name;
+    }
+
+    /**
      * Get the login logs for the user.
      */
     public function loginLogs()

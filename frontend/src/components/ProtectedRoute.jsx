@@ -16,10 +16,11 @@ const ProtectedRoute = ({ children, requiredPermission, requiredRole }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Check permission if required
+  // Check permission if required (supports single permission string or array of permissions)
   if (requiredPermission && user) {
-    const hasPermission = user.permissions?.some(
-      p => p.slug === requiredPermission
+    const permissions = Array.isArray(requiredPermission) ? requiredPermission : [requiredPermission];
+    const hasPermission = permissions.some(perm =>
+      user.permissions?.some(p => p.slug === perm)
     );
     
     if (!hasPermission) {
@@ -32,7 +33,9 @@ const ProtectedRoute = ({ children, requiredPermission, requiredRole }) => {
               You don't have permission to access this page.
             </p>
             <p className="text-sm text-gray-500 mb-4">
-              Required permission: <code className="bg-gray-100 px-2 py-1 rounded">{requiredPermission}</code>
+              Required permission: <code className="bg-gray-100 px-2 py-1 rounded">
+                {Array.isArray(requiredPermission) ? requiredPermission.join(' or ') : requiredPermission}
+              </code>
             </p>
             <Navigate to="/dashboard" replace />
           </div>
