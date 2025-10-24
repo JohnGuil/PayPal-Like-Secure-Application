@@ -20,10 +20,10 @@ use App\Http\Controllers\Api\ReportController;
 |--------------------------------------------------------------------------
 */
 
-// Public routes
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/2fa/verify-login', [TwoFactorController::class, 'verifyLogin']);
+// Public routes (Rate limited to prevent brute force attacks)
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:login');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/2fa/verify-login', [TwoFactorController::class, 'verifyLogin'])->middleware('throttle:login');
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -41,7 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // RBAC (Role-Based Access Control) Routes
     // ========================================
     
-    // Role management (Admin only - checked in controller)
+    // Role management (Permission checked in controller)
     Route::prefix('roles')->group(function () {
         Route::get('/', [RoleController::class, 'index']); // List all roles
         Route::get('/{role}', [RoleController::class, 'show']); // Get specific role
@@ -54,7 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/revoke', [RoleController::class, 'revokeFromUser']); // Revoke role from user
     });
 
-    // Permission management (Super Admin only - checked in controller)
+    // Permission management (Permission checked in controller)
     Route::prefix('permissions')->group(function () {
         Route::get('/', [PermissionController::class, 'index']); // List all permissions
         Route::get('/{permission}', [PermissionController::class, 'show']); // Get specific permission
@@ -63,7 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{permission}', [PermissionController::class, 'destroy']); // Delete permission
     });
 
-    // User management routes (permission-based)
+    // User management routes (Permission checked in controller)
     Route::prefix('users')->group(function () {
         Route::get('/', [UserController::class, 'index']); // List users
         Route::get('/{id}', [UserController::class, 'show']); // Show single user
@@ -78,7 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/password', [UserController::class, 'updatePassword']); // Change own password
     });
 
-    // Transaction management
+    // Transaction management (Permission checked in controller)
     Route::prefix('transactions')->group(function () {
         Route::get('/', [TransactionController::class, 'index']); // List transactions
         Route::get('/statistics', [TransactionController::class, 'statistics']); // Get statistics
@@ -87,21 +87,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{id}/status', [TransactionController::class, 'updateStatus']); // Update status
     });
 
-    // Login logs
+    // Login logs (Permission checked in controller)
     Route::prefix('login-logs')->group(function () {
         Route::get('/', [LoginLogController::class, 'index']); // List login logs
         Route::get('/statistics', [LoginLogController::class, 'statistics']); // Get statistics
         Route::get('/{id}', [LoginLogController::class, 'show']); // Show single log
     });
 
-    // Admin dashboard
+    // Admin dashboard (Permission checked in controller)
     Route::prefix('admin')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index']); // Dashboard overview
         Route::get('/dashboard/revenue-trend', [AdminDashboardController::class, 'revenueTrend']); // Revenue trend
         Route::get('/dashboard/user-growth', [AdminDashboardController::class, 'userGrowth']); // User growth
     });
 
-    // System settings
+    // System settings (Permission checked in controller)
     Route::prefix('settings')->group(function () {
         Route::get('/', [SettingsController::class, 'index']); // Get all settings
         Route::put('/', [SettingsController::class, 'update']); // Update settings
@@ -109,7 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/reset', [SettingsController::class, 'reset']); // Reset to defaults
     });
 
-    // Audit logs
+    // Audit logs (Permission checked in controller)
     Route::prefix('audit-logs')->group(function () {
         Route::get('/', [AuditLogController::class, 'index']); // List audit logs
         Route::get('/statistics', [AuditLogController::class, 'statistics']); // Get statistics
@@ -117,7 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [AuditLogController::class, 'show']); // Show single log
     });
 
-    // Reports
+    // Reports (Permission checked in controller)
     Route::prefix('reports')->group(function () {
         Route::post('/', [ReportController::class, 'generate']); // Generate report
     });
