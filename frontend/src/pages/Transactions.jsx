@@ -7,8 +7,11 @@ export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [filter, setFilter] = useState('all'); // all, sent, received
   const [searchTerm, setSearchTerm] = useState('');
+  const [balance, setBalance] = useState(0);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -18,13 +21,26 @@ export default function Transactions() {
     transaction_type: 'payment'
   });
 
+  // Refund form state
+  const [refundReason, setRefundReason] = useState('');
+
   // Permission checks
   const canViewAll = user?.permissions?.some(p => p.slug === 'view-all-transactions');
   const canCreate = user?.permissions?.some(p => p.slug === 'create-transactions');
 
   useEffect(() => {
     fetchTransactions();
+    fetchUserBalance();
   }, []);
+
+  const fetchUserBalance = async () => {
+    try {
+      const response = await api.get('/user');
+      setBalance(response.data.user.balance || 0);
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+    }
+  };
 
   const fetchTransactions = async () => {
     try {
@@ -65,9 +81,29 @@ export default function Transactions() {
         transaction_type: 'payment'
       });
       fetchTransactions();
+      fetchUserBalance(); // Refresh balance after transaction
     } catch (error) {
       console.error('Error creating transaction:', error);
       alert(error.response?.data?.message || 'Failed to create transaction');
+    }
+  };
+
+  const handleRefund = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post(`/transactions/${selectedTransaction.id}/refund`, {
+        reason: refundReason
+      });
+      
+      alert('Transaction refunded successfully!');
+      setShowRefundModal(false);
+      setSelectedTransaction(null);
+      setRefundReason('');
+      fetchTransactions();
+      fetchUserBalance(); // Refresh balance after refund
+    } catch (error) {
+      console.error('Error refunding transaction:', error);
+      alert(error.response?.data?.message || 'Failed to refund transaction');
     }
   };
 
@@ -140,6 +176,21 @@ export default function Transactions() {
 
   return (
     <div className="space-y-6">
+      {/* Balance Card */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-blue-100 text-sm mb-1">Your Balance</p>
+            <h2 className="text-4xl font-bold">${parseFloat(balance || 0).toFixed(2)}</h2>
+          </div>
+          <div className="bg-white bg-opacity-20 p-3 rounded-lg">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -253,6 +304,9 @@ export default function Transactions() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -291,6 +345,32 @@ export default function Transactions() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(transaction.created_at).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {canCreate && 
+                       transaction.status === 'completed' && 
+                       !transaction.is_refunded && 
+                       transaction.type !== 'refund' && 
+                       transaction.sender.id === user?.id && (
+                        <button
+                          onClick={() => {
+                            setSelectedTransaction(transaction);
+                            setShowRefundModal(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                          </svg>
+                          Refund
+                        </button>
+                      )}
+                      {transaction.is_refunded && (
+                        <span className="text-gray-500 text-xs">Refunded</span>
+                      )}
+                      {transaction.type === 'refund' && transaction.original_transaction_id && (
+                        <span className="text-gray-500 text-xs">Refund of #{transaction.original_transaction_id}</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -388,6 +468,84 @@ export default function Transactions() {
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Create Transaction
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Refund Modal */}
+      {showRefundModal && selectedTransaction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Refund Transaction</h2>
+              <button
+                onClick={() => {
+                  setShowRefundModal(false);
+                  setSelectedTransaction(null);
+                  setRefundReason('');
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>Transaction Details:</strong>
+              </p>
+              <p className="text-sm text-yellow-700 mt-2">
+                Amount: <strong>${formatAmount(selectedTransaction.amount)} {selectedTransaction.currency}</strong>
+              </p>
+              <p className="text-sm text-yellow-700">
+                To: <strong>{selectedTransaction.recipient.name}</strong>
+              </p>
+              <p className="text-sm text-yellow-700">
+                Date: <strong>{new Date(selectedTransaction.created_at).toLocaleDateString()}</strong>
+              </p>
+            </div>
+
+            <form onSubmit={handleRefund} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Refund Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  minLength={10}
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows="4"
+                  placeholder="Please provide a detailed reason for the refund (minimum 10 characters)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Minimum 10 characters required
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRefundModal(false);
+                    setSelectedTransaction(null);
+                    setRefundReason('');
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  Process Refund
                 </button>
               </div>
             </form>

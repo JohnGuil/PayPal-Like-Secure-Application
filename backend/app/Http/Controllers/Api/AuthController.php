@@ -104,6 +104,8 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'full_name' => $user->full_name,
                 'email' => $user->email,
+                'balance' => $user->balance,
+                'currency' => $user->currency,
                 'two_factor_enabled' => $user->two_factor_enabled,
             ],
         ], 200);
@@ -136,6 +138,8 @@ class AuthController extends Controller
                 'full_name' => $user->full_name,
                 'email' => $user->email,
                 'mobile_number' => $user->mobile_number,
+                'balance' => $user->balance,
+                'currency' => $user->currency,
                 'two_factor_enabled' => $user->two_factor_enabled,
                 'last_login_at' => $user->last_login_at,
                 'last_login_ip' => $user->last_login_ip,

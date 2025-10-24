@@ -22,6 +22,9 @@ class Transaction extends Model
         'type',
         'status',
         'description',
+        'original_transaction_id',
+        'reason',
+        'is_refunded',
     ];
 
     /**
@@ -31,6 +34,7 @@ class Transaction extends Model
      */
     protected $casts = [
         'amount' => 'float',
+        'is_refunded' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -49,5 +53,39 @@ class Transaction extends Model
     public function recipient()
     {
         return $this->belongsTo(User::class, 'recipient_id');
+    }
+
+    /**
+     * Get the original transaction for refunds.
+     */
+    public function originalTransaction()
+    {
+        return $this->belongsTo(Transaction::class, 'original_transaction_id');
+    }
+
+    /**
+     * Get refunds for this transaction.
+     */
+    public function refunds()
+    {
+        return $this->hasMany(Transaction::class, 'original_transaction_id');
+    }
+
+    /**
+     * Check if transaction can be refunded.
+     */
+    public function canBeRefunded(): bool
+    {
+        return $this->status === 'completed' 
+            && !$this->is_refunded 
+            && $this->type !== 'refund';
+    }
+
+    /**
+     * Check if this is a refund transaction.
+     */
+    public function isRefund(): bool
+    {
+        return $this->type === 'refund';
     }
 }

@@ -84,6 +84,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/statistics', [TransactionController::class, 'statistics']); // Get statistics
         Route::get('/{id}', [TransactionController::class, 'show']); // Show single transaction
         Route::post('/', [TransactionController::class, 'store']); // Create transaction
+        Route::post('/{id}/refund', [TransactionController::class, 'refund']); // Refund transaction
         Route::put('/{id}/status', [TransactionController::class, 'updateStatus']); // Update status
     });
 

@@ -151,6 +151,8 @@ class TwoFactorController extends Controller
                 'id' => $user->id,
                 'full_name' => $user->full_name,
                 'email' => $user->email,
+                'balance' => $user->balance,
+                'currency' => $user->currency,
                 'two_factor_enabled' => $user->two_factor_enabled,
             ],
         ], 200);

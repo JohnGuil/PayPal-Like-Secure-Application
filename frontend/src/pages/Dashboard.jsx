@@ -74,6 +74,51 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Balance Card - PayPal Style */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-xl overflow-hidden">
+            <div className="p-8 text-white">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <p className="text-blue-100 text-sm mb-1">Available Balance</p>
+                  <h2 className="text-5xl font-bold">
+                    ${parseFloat(userData?.balance || user?.balance || 0).toFixed(2)}
+                  </h2>
+                  <p className="text-blue-100 text-sm mt-1">
+                    {userData?.currency || user?.currency || 'USD'}
+                  </p>
+                </div>
+                <div className="bg-white bg-opacity-20 p-4 rounded-xl">
+                  <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 mt-8">
+                <button
+                  onClick={() => navigate('/transactions')}
+                  className="flex-1 bg-white text-blue-700 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Send Money
+                </button>
+                <button
+                  onClick={() => navigate('/transactions')}
+                  className="flex-1 bg-blue-700 bg-opacity-50 text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-70 transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  View History
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* User Information */}
           <div className="lg:col-span-2 space-y-6">
