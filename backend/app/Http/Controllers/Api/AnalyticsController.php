@@ -368,6 +368,26 @@ class AnalyticsController extends Controller
             ? round(($failedTransactions / $totalTransactionsAllTime) * 100, 2)
             : 0;
 
+        // Security stats
+        $failedLogins24h = LoginLog::where('is_successful', false)
+            ->where('created_at', '>=', Carbon::now()->subDay())
+            ->count();
+        
+        $lockedAccounts = User::whereNotNull('locked_until')
+            ->where('locked_until', '>', now())
+            ->count();
+        
+        $suspiciousActivity7d = LoginLog::where('is_successful', false)
+            ->where('failure_reason', 'Account locked')
+            ->where('created_at', '>=', Carbon::now()->subDays(7))
+            ->count();
+        
+        $twoFactorEnabled = User::where('two_factor_enabled', true)->count();
+        $totalUsers = User::count();
+        $twoFactorPercentage = $totalUsers > 0 
+            ? round(($twoFactorEnabled / $totalUsers) * 100, 1)
+            : 0;
+
         return response()->json([
             'today' => [
                 'transactions' => $todayTransactions,
@@ -392,6 +412,12 @@ class AnalyticsController extends Controller
                     'db_response_time' => $dbResponseTime,
                     'error_rate' => $errorRate,
                     'failed_transactions' => $failedTransactions,
+                ],
+                'security' => [
+                    'failed_logins_24h' => $failedLogins24h,
+                    'locked_accounts' => $lockedAccounts,
+                    'suspicious_activity' => $suspiciousActivity7d,
+                    'two_factor_percentage' => $twoFactorPercentage,
                 ],
             ],
         ]);

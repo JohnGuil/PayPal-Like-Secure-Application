@@ -39,6 +39,12 @@ export default function AdminDashboard() {
           api_response_time: dashboardData.system?.health?.db_response_time || 0,
           error_rate: dashboardData.system?.health?.error_rate || 0,
           uptime: 99.98 // This would require external monitoring
+        },
+        security: {
+          failed_logins_24h: dashboardData.system?.security?.failed_logins_24h || 0,
+          locked_accounts: dashboardData.system?.security?.locked_accounts || 0,
+          suspicious_activity: dashboardData.system?.security?.suspicious_activity || 0,
+          two_factor_percentage: dashboardData.system?.security?.two_factor_percentage || 0
         }
       });
 
@@ -291,6 +297,93 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Security Overview */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">🔒 Security Overview</h2>
+              <Link to="/reports?type=security-events" className="text-sm text-blue-600 hover:text-blue-700">
+                View Report →
+              </Link>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {/* Failed Logins (Last 24h) */}
+              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Failed Login Attempts</p>
+                    <p className="text-xs text-gray-500">Last 24 hours</p>
+                  </div>
+                </div>
+                <span className="text-lg font-bold text-yellow-800">
+                  {stats?.security?.failed_logins_24h || 0}
+                </span>
+              </div>
+
+              {/* Currently Locked Accounts */}
+              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Locked Accounts</p>
+                    <p className="text-xs text-gray-500">Currently active</p>
+                  </div>
+                </div>
+                <span className="text-lg font-bold text-red-800">
+                  {stats?.security?.locked_accounts || 0}
+                </span>
+              </div>
+
+              {/* Suspicious Activity */}
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Suspicious Activity</p>
+                    <p className="text-xs text-gray-500">Last 7 days</p>
+                  </div>
+                </div>
+                <span className="text-lg font-bold text-purple-800">
+                  {stats?.security?.suspicious_activity || 0}
+                </span>
+              </div>
+
+              {/* 2FA Adoption */}
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">2FA Enabled</p>
+                    <p className="text-xs text-gray-500">User adoption rate</p>
+                  </div>
+                </div>
+                <span className="text-lg font-bold text-green-800">
+                  {stats?.security?.two_factor_percentage || '0'}%
+                </span>
+              </div>
             </div>
           </div>
         </div>
