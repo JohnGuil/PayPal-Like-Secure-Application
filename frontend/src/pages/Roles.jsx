@@ -10,6 +10,18 @@ const Roles = () => {
   const [error, setError] = useState(null);
   const [selectedRole, setSelectedRole] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    level: 50,
+    is_active: true,
+    permissions: []
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
   const canCreate = user?.permissions?.some(p => p.slug === 'create-roles');
   const canUpdate = user?.permissions?.some(p => p.slug === 'update-roles');
@@ -39,6 +51,85 @@ const Roles = () => {
       setPermissions(response.data.permissions || []);
     } catch (err) {
       console.error('Failed to fetch permissions:', err);
+    }
+  };
+
+  const openModal = (role = null) => {
+    if (role) {
+      // Edit mode - populate form with role data
+      setSelectedRole(role);
+      setFormData({
+        name: role.name,
+        slug: role.slug,
+        description: role.description || '',
+        level: role.level,
+        is_active: role.is_active,
+        permissions: role.permissions?.map(p => p.slug) || []
+      });
+    } else {
+      // Create mode - reset form
+      setSelectedRole(null);
+      setFormData({
+        name: '',
+        slug: '',
+        description: '',
+        level: 50,
+        is_active: true,
+        permissions: []
+      });
+    }
+    setFormErrors({});
+    setShowModal(true);
+  };
+
+  const handlePermissionToggle = (permissionSlug) => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: prev.permissions.includes(permissionSlug)
+        ? prev.permissions.filter(p => p !== permissionSlug)
+        : [...prev.permissions, permissionSlug]
+    }));
+  };
+
+  const generateSlug = (name) => {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  };
+
+  const handleNameChange = (e) => {
+    const name = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      name,
+      slug: selectedRole ? prev.slug : generateSlug(name) // Auto-generate slug only for new roles
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setFormErrors({});
+    setSubmitting(true);
+
+    try {
+      if (selectedRole) {
+        // Update existing role
+        await api.put(`/roles/${selectedRole.id}`, formData);
+        setError(null);
+      } else {
+        // Create new role
+        await api.post('/roles', formData);
+        setError(null);
+      }
+      
+      setShowModal(false);
+      fetchRoles();
+    } catch (err) {
+      if (err.response?.data?.errors) {
+        setFormErrors(err.response.data.errors);
+      } else {
+        setError(err.response?.data?.message || 'Failed to save role');
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -82,10 +173,7 @@ const Roles = () => {
           </div>
           {canCreate && (
             <button
-              onClick={() => {
-                setSelectedRole(null);
-                setShowModal(true);
-              }}
+              onClick={() => openModal()}
               className="btn-primary flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,10 +249,7 @@ const Roles = () => {
                 <div className="flex gap-2 pt-4 border-t border-gray-200">
                   {canUpdate && (
                     <button
-                      onClick={() => {
-                        setSelectedRole(role);
-                        setShowModal(true);
-                      }}
+                      onClick={() => openModal(role)}
                       className="flex-1 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     >
                       Edit
@@ -191,50 +276,154 @@ const Roles = () => {
               <h2 className="text-2xl font-bold mb-4">
                 {selectedRole ? 'Edit Role' : 'Create New Role'}
               </h2>
-              <div className="space-y-4">
+              
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="label">Role Name</label>
+                  <label className="label">Role Name *</label>
                   <input
                     type="text"
-                    className="input-field"
-                    defaultValue={selectedRole?.name}
+                    className={`input-field ${formErrors.name ? 'border-red-500' : ''}`}
+                    value={formData.name}
+                    onChange={handleNameChange}
                     placeholder="e.g., Content Manager"
+                    required
+                  />
+                  {formErrors.name && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors.name[0]}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="label">Slug *</label>
+                  <input
+                    type="text"
+                    className={`input-field ${formErrors.slug ? 'border-red-500' : ''}`}
+                    value={formData.slug}
+                    onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                    placeholder="e.g., content-manager"
+                    required
+                    disabled={selectedRole?.slug === 'super-admin'} // Can't change super-admin slug
+                  />
+                  {formErrors.slug && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors.slug[0]}</p>
+                  )}
+                  <p className="text-gray-500 text-xs mt-1">Lowercase, hyphens only (auto-generated from name)</p>
+                </div>
+
+                <div>
+                  <label className="label">Description</label>
+                  <textarea
+                    className="input-field"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    placeholder="Brief description of this role"
+                    rows="2"
                   />
                 </div>
+
+                <div>
+                  <label className="label">Level (1-99) *</label>
+                  <input
+                    type="number"
+                    className={`input-field ${formErrors.level ? 'border-red-500' : ''}`}
+                    value={formData.level}
+                    onChange={(e) => setFormData({...formData, level: parseInt(e.target.value)})}
+                    min="1"
+                    max="99"
+                    required
+                  />
+                  {formErrors.level && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors.level[0]}</p>
+                  )}
+                  <p className="text-gray-500 text-xs mt-1">Higher level = more authority (100 reserved for Super Admin)</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+                  />
+                  <label htmlFor="is_active" className="text-sm text-gray-700">Active Role</label>
+                </div>
+
                 <div>
                   <label className="label">Permissions</label>
-                  <div className="border border-gray-300 rounded-lg p-4 max-h-96 overflow-y-auto">
+                  <div className="border border-gray-300 rounded-lg p-4 max-h-96 overflow-y-auto bg-gray-50">
+                    <div className="mb-3 flex items-center justify-between pb-2 border-b border-gray-200">
+                      <span className="text-sm font-medium text-gray-700">
+                        Selected: {formData.permissions.length} / {permissions.length}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({...formData, permissions: permissions.map(p => p.slug)})}
+                          className="text-xs text-blue-600 hover:text-blue-700"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({...formData, permissions: []})}
+                          className="text-xs text-red-600 hover:text-red-700"
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                    </div>
+                    
                     {Object.entries(groupPermissionsByResource()).map(([resource, perms]) => (
                       <div key={resource} className="mb-4 last:mb-0">
-                        <h4 className="font-semibold text-gray-900 capitalize mb-2">{resource}</h4>
-                        <div className="grid grid-cols-2 gap-2">
+                        <h4 className="font-semibold text-gray-900 capitalize mb-2 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                          {resource}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-4">
                           {perms.map((perm) => (
-                            <label key={perm.id} className="flex items-center gap-2 text-sm">
+                            <label key={perm.id} className="flex items-start gap-2 text-sm hover:bg-white p-2 rounded cursor-pointer">
                               <input
                                 type="checkbox"
-                                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                defaultChecked={selectedRole?.permissions?.some(p => p.id === perm.id)}
+                                className="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                checked={formData.permissions.includes(perm.slug)}
+                                onChange={() => handlePermissionToggle(perm.slug)}
                               />
-                              <span className="text-gray-700">{perm.name}</span>
+                              <div className="flex-1">
+                                <span className="text-gray-900 font-medium">{perm.name}</span>
+                                {perm.description && (
+                                  <p className="text-xs text-gray-500">{perm.description}</p>
+                                )}
+                              </div>
                             </label>
                           ))}
                         </div>
                       </div>
                     ))}
                   </div>
+                  {formErrors.permissions && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors.permissions[0]}</p>
+                  )}
                 </div>
+
                 <div className="flex gap-2 pt-4 border-t border-gray-200">
-                  <button className="btn-primary flex-1">
-                    {selectedRole ? 'Update Role' : 'Create Role'}
+                  <button 
+                    type="submit" 
+                    className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Saving...' : (selectedRole ? 'Update Role' : 'Create Role')}
                   </button>
                   <button
+                    type="button"
                     onClick={() => setShowModal(false)}
                     className="btn-secondary flex-1"
+                    disabled={submitting}
                   >
                     Cancel
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         )}

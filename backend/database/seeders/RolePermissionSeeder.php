@@ -114,7 +114,7 @@ class RolePermissionSeeder extends Seeder
         // Assign all permissions to Super Admin
         $superAdmin->syncPermissions(Permission::all());
 
-        // Admin permissions (everything except system-critical operations)
+        // Admin permissions (user management and basic admin tasks, NO system settings or audit logs)
         $adminPermissions = Permission::whereIn('slug', [
             'view-users',
             'create-users',
@@ -126,13 +126,13 @@ class RolePermissionSeeder extends Seeder
             'view-all-transactions',
             'view-all-login-logs',
             'view-admin-dashboard',
-            'view-system-settings',
-            'view-audit-logs',
+            // Removed: 'view-system-settings' - Super Admin only
+            // Removed: 'view-audit-logs' - Super Admin only
             'generate-reports',
         ])->get();
         $admin->syncPermissions($adminPermissions);
 
-        // Manager permissions
+        // Manager permissions (read-only access to reports and data)
         $managerPermissions = Permission::whereIn('slug', [
             'view-users',
             'view-roles',
