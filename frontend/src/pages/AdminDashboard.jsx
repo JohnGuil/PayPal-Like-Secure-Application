@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import api from '../services/api';
+import analyticsService from '../services/analyticsService';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -16,77 +16,55 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API endpoint when backend is ready
-      // const response = await api.get('/admin/dashboard');
-      // setStats(response.data.stats);
-      // setRecentActivity(response.data.recent_activity);
       
-      // Mock data for now
+      console.log('🔍 Fetching dashboard data...');
+      
+      // Fetch real data from analytics API
+      const dashboardData = await analyticsService.getDashboard();
+      
+      console.log('✅ Dashboard response:', dashboardData);
+      
       setStats({
-        total_users: 156,
-        active_users: 89,
-        total_transactions: 1247,
-        total_revenue: 125847.50,
-        pending_transactions: 23,
-        failed_transactions: 8,
-        new_users_today: 5,
-        transactions_today: 47,
-        revenue_today: 4523.75,
+        total_users: dashboardData.system?.total_users || 0,
+        active_users: dashboardData.today?.active_users || 0,
+        total_transactions: dashboardData.this_month?.transactions || 0,
+        total_revenue: dashboardData.this_month?.volume || 0,
+        pending_transactions: dashboardData.system?.pending_transactions || 0,
+        failed_transactions: dashboardData.system?.health?.failed_transactions || 0,
+        new_users_today: 0, // Not yet tracked
+        transactions_today: dashboardData.today?.transactions || 0,
+        revenue_today: dashboardData.today?.volume || 0,
         system_health: {
-          database: 'healthy',
-          api_response_time: 145,
-          error_rate: 0.02,
-          uptime: 99.98
+          database: dashboardData.system?.health?.database || 'unknown',
+          api_response_time: dashboardData.system?.health?.db_response_time || 0,
+          error_rate: dashboardData.system?.health?.error_rate || 0,
+          uptime: 99.98 // This would require external monitoring
         }
       });
 
-      setRecentActivity([
-        {
-          id: 1,
-          type: 'user_registered',
-          user: { name: 'Alice Johnson', email: 'alice@example.com' },
-          timestamp: '2025-10-24T10:30:00Z',
-          icon: 'user-plus',
-          color: 'blue'
+      // Transform recent transactions to activity feed
+      const activities = (dashboardData.recent_transactions || []).map((transaction, index) => ({
+        id: transaction.id,
+        type: transaction.type === 'refund' ? 'transaction_refund' : 'transaction_completed',
+        user: { 
+          name: transaction.sender?.full_name || 'Unknown', 
+          email: transaction.sender?.email || 'N/A' 
         },
-        {
-          id: 2,
-          type: 'transaction_completed',
-          user: { name: 'Bob Smith', email: 'bob@example.com' },
-          amount: 250.00,
-          timestamp: '2025-10-24T10:25:00Z',
-          icon: 'currency',
-          color: 'green'
-        },
-        {
-          id: 3,
-          type: 'login_failed',
-          user: { name: 'Charlie Brown', email: 'charlie@example.com' },
-          timestamp: '2025-10-24T10:20:00Z',
-          icon: 'lock',
-          color: 'red'
-        },
-        {
-          id: 4,
-          type: 'role_assigned',
-          user: { name: 'Diana Prince', email: 'diana@example.com' },
-          role: 'Manager',
-          timestamp: '2025-10-24T10:15:00Z',
-          icon: 'shield',
-          color: 'purple'
-        },
-        {
-          id: 5,
-          type: 'transaction_completed',
-          user: { name: 'Eve Martinez', email: 'eve@example.com' },
-          amount: 89.99,
-          timestamp: '2025-10-24T10:10:00Z',
-          icon: 'currency',
-          color: 'green'
-        }
-      ]);
+        recipient: transaction.recipient?.full_name,
+        amount: parseFloat(transaction.amount),
+        timestamp: transaction.created_at,
+        icon: transaction.type === 'refund' ? 'refund' : 'currency',
+        color: transaction.type === 'refund' ? 'red' : 'green'
+      }));
+
+      console.log('📜 Recent activities:', activities);
+
+      setRecentActivity(activities);
+      
+      console.log('✅ Dashboard data loaded successfully');
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('❌ Error fetching dashboard data:', error);
+      console.error('Error details:', error.response?.data || error.message);
     } finally {
       setLoading(false);
     }
@@ -102,6 +80,11 @@ export default function AdminDashboard() {
       'currency': (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      'refund': (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
         </svg>
       ),
       'lock': (
@@ -133,7 +116,9 @@ export default function AdminDashboard() {
       case 'user_registered':
         return `${activity.user.name} registered a new account`;
       case 'transaction_completed':
-        return `${activity.user.name} completed a transaction of $${activity.amount.toFixed(2)}`;
+        return `${activity.user.name} sent $${activity.amount?.toFixed(2)} to ${activity.recipient || 'unknown'}`;
+      case 'transaction_refund':
+        return `${activity.user.name} refunded $${activity.amount?.toFixed(2)} to ${activity.recipient || 'unknown'}`;
       case 'login_failed':
         return `Failed login attempt for ${activity.user.name}`;
       case 'role_assigned':
@@ -141,6 +126,24 @@ export default function AdminDashboard() {
       default:
         return 'Unknown activity';
     }
+  };
+
+  const getHealthStatusColor = (status) => {
+    if (status === 'healthy') return 'bg-green-500';
+    if (status === 'unhealthy') return 'bg-red-500';
+    return 'bg-yellow-500';
+  };
+
+  const getResponseTimeColor = (time) => {
+    if (time < 100) return 'bg-green-500';
+    if (time < 500) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const getErrorRateColor = (rate) => {
+    if (rate < 1) return 'bg-green-500';
+    if (rate < 5) return 'bg-yellow-500';
+    return 'bg-red-500';
   };
 
   if (loading) {
@@ -198,8 +201,8 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Total Revenue</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">${stats?.total_revenue.toLocaleString()}</p>
-              <p className="text-sm text-green-600 mt-2">+${stats?.revenue_today.toFixed(2)} today</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">${(stats?.total_revenue || 0).toLocaleString()}</p>
+              <p className="text-sm text-green-600 mt-2">+${(stats?.revenue_today || 0).toFixed(2)} today</p>
             </div>
             <div className="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center">
               <svg className="w-7 h-7 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,9 +217,9 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Active Users</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.active_users}</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.active_users || 0}</p>
               <p className="text-sm text-gray-500 mt-2">
-                {((stats?.active_users / stats?.total_users) * 100).toFixed(1)}% of total
+                {stats?.total_users > 0 ? ((stats?.active_users / stats?.total_users) * 100).toFixed(1) : 0}% of total
               </p>
             </div>
             <div className="w-14 h-14 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -237,24 +240,24 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <div className={`w-3 h-3 rounded-full ${getHealthStatusColor(stats?.system_health.database)}`}></div>
                 <span className="text-sm font-medium text-gray-700">Database</span>
               </div>
               <p className="text-2xl font-bold text-gray-900 capitalize">{stats?.system_health.database}</p>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-sm font-medium text-gray-700">API Response</span>
+                <div className={`w-3 h-3 rounded-full ${getResponseTimeColor(stats?.system_health.api_response_time)}`}></div>
+                <span className="text-sm font-medium text-gray-700">DB Response</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{stats?.system_health.api_response_time}ms</p>
+              <p className="text-2xl font-bold text-gray-900">{stats?.system_health.api_response_time?.toFixed(2)}ms</p>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <div className={`w-3 h-3 rounded-full ${getErrorRateColor(stats?.system_health.error_rate)}`}></div>
                 <span className="text-sm font-medium text-gray-700">Error Rate</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{(stats?.system_health.error_rate * 100).toFixed(2)}%</p>
+              <p className="text-2xl font-bold text-gray-900">{stats?.system_health.error_rate?.toFixed(2)}%</p>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -365,16 +368,19 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
               <p className="text-sm text-gray-600 mb-2">Pending Transactions</p>
-              <p className="text-3xl font-bold text-yellow-600">{stats?.pending_transactions}</p>
+              <p className="text-3xl font-bold text-yellow-600">{stats?.pending_transactions || 0}</p>
             </div>
             <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
               <p className="text-sm text-gray-600 mb-2">Failed Transactions</p>
-              <p className="text-3xl font-bold text-red-600">{stats?.failed_transactions}</p>
+              <p className="text-3xl font-bold text-red-600">{stats?.failed_transactions || 0}</p>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
               <p className="text-sm text-gray-600 mb-2">Success Rate</p>
               <p className="text-3xl font-bold text-green-600">
-                {((1 - stats?.failed_transactions / stats?.total_transactions) * 100).toFixed(1)}%
+                {stats?.total_transactions > 0 
+                  ? ((1 - (stats?.failed_transactions || 0) / stats?.total_transactions) * 100).toFixed(1)
+                  : 100
+                }%
               </p>
             </div>
           </div>

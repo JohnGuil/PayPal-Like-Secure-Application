@@ -342,25 +342,49 @@ class AnalyticsController extends Controller
             ->limit(10)
             ->get();
 
+        // System health metrics
+        $startTime = microtime(true);
+        try {
+            DB::connection()->getPdo();
+            $dbStatus = 'healthy';
+            $dbResponseTime = round((microtime(true) - $startTime) * 1000, 2); // in ms
+        } catch (\Exception $e) {
+            $dbStatus = 'unhealthy';
+            $dbResponseTime = 0;
+        }
+
+        // Calculate error rate from failed transactions
+        $totalTransactionsAllTime = Transaction::count();
+        $failedTransactions = Transaction::where('status', 'failed')->count();
+        $errorRate = $totalTransactionsAllTime > 0 
+            ? round(($failedTransactions / $totalTransactionsAllTime) * 100, 2)
+            : 0;
+
         return response()->json([
             'today' => [
                 'transactions' => $todayTransactions,
-                'volume' => number_format($todayVolume, 2),
+                'volume' => (float) $todayVolume,
                 'active_users' => $activeUsersToday,
             ],
             'growth' => [
-                'transactions' => number_format($transactionGrowth, 2) . '%',
-                'volume' => number_format($volumeGrowth, 2) . '%',
+                'transactions' => round($transactionGrowth, 2),
+                'volume' => round($volumeGrowth, 2),
             ],
             'this_month' => [
                 'transactions' => $monthTransactions,
-                'volume' => number_format($monthVolume, 2),
+                'volume' => (float) $monthVolume,
             ],
             'recent_transactions' => $recentTransactions,
             'system' => [
                 'total_users' => User::count(),
-                'total_balance' => number_format(User::sum('balance'), 2),
+                'total_balance' => (float) User::sum('balance'),
                 'pending_transactions' => Transaction::where('status', 'pending')->count(),
+                'health' => [
+                    'database' => $dbStatus,
+                    'db_response_time' => $dbResponseTime,
+                    'error_rate' => $errorRate,
+                    'failed_transactions' => $failedTransactions,
+                ],
             ],
         ]);
     }
