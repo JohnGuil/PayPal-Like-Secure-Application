@@ -25,6 +25,8 @@ class LoginLog extends Model
         'user_id',
         'ip_address',
         'user_agent',
+        'is_successful',
+        'failure_reason',
         'created_at',
     ];
 
@@ -37,6 +39,7 @@ class LoginLog extends Model
     {
         return [
             'created_at' => 'datetime',
+            'is_successful' => 'boolean',
         ];
     }
 

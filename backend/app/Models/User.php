@@ -32,6 +32,9 @@ class User extends Authenticatable
         'primary_role_id',
         'balance',
         'currency',
+        'failed_login_attempts',
+        'last_failed_login',
+        'locked_until',
     ];
 
     /**
@@ -55,6 +58,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'last_failed_login' => 'datetime',
+            'locked_until' => 'datetime',
             'password' => 'hashed',
             'is_verified' => 'boolean',
             'two_factor_enabled' => 'boolean',
