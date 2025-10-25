@@ -93,7 +93,12 @@ class RoleController extends Controller
         ]);
 
         if (isset($validated['permissions'])) {
-            $role->syncPermissions($validated['permissions']);
+            // Use web guard since permissions are created with 'web' guard
+            $permissions = collect($validated['permissions'])->map(function($slug) {
+                return Permission::where('slug', $slug)->where('guard_name', 'web')->first();
+            })->filter();
+            
+            $role->syncPermissions($permissions);
         }
 
         // Log role creation
@@ -158,7 +163,12 @@ class RoleController extends Controller
         ]));
 
         if (isset($validated['permissions'])) {
-            $role->syncPermissions($validated['permissions']);
+            // Use web guard since permissions are created with 'web' guard
+            $permissions = collect($validated['permissions'])->map(function($slug) {
+                return Permission::where('slug', $slug)->where('guard_name', 'web')->first();
+            })->filter();
+            
+            $role->syncPermissions($permissions);
         }
 
         // Log role update with before/after state

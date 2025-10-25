@@ -271,149 +271,175 @@ const Roles = () => {
 
         {/* Create/Edit Role Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="card max-w-2xl w-full my-8">
-              <h2 className="text-2xl font-bold mb-4">
-                {selectedRole ? 'Edit Role' : 'Create New Role'}
-              </h2>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="label">Role Name *</label>
-                  <input
-                    type="text"
-                    className={`input-field ${formErrors.name ? 'border-red-500' : ''}`}
-                    value={formData.name}
-                    onChange={handleNameChange}
-                    placeholder="e.g., Content Manager"
-                    required
-                  />
-                  {formErrors.name && (
-                    <p className="text-red-500 text-sm mt-1">{formErrors.name[0]}</p>
-                  )}
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            {/* Dialog container: column layout with header, scrollable content, footer */}
+            <div className="card max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-white z-20">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {selectedRole ? 'Edit Role' : 'Create New Role'}
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {selectedRole ? 'Update role details and permissions' : 'Create a new role with specific permissions'}
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+                {/* Basic Information Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Role Name *</label>
+                      <input
+                        type="text"
+                        className={`input-field ${formErrors.name ? 'border-red-500' : ''}`}
+                        value={formData.name}
+                        onChange={handleNameChange}
+                        placeholder="e.g., Content Manager"
+                        required
+                      />
+                      {formErrors.name && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.name[0]}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="label">Slug *</label>
+                      <input
+                        type="text"
+                        className={`input-field ${formErrors.slug ? 'border-red-500' : ''}`}
+                        value={formData.slug}
+                        onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                        placeholder="e.g., content-manager"
+                        required
+                        disabled={selectedRole?.slug === 'super-admin'}
+                      />
+                      {formErrors.slug && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.slug[0]}</p>
+                      )}
+                      <p className="text-gray-500 text-xs mt-1">Lowercase, hyphens only</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="label">Description</label>
+                    <textarea
+                      className="input-field"
+                      value={formData.description}
+                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      placeholder="Brief description of this role's purpose and responsibilities"
+                      rows="3"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Authority Level (1-99) *</label>
+                      <input
+                        type="number"
+                        className={`input-field ${formErrors.level ? 'border-red-500' : ''}`}
+                        value={formData.level}
+                        onChange={(e) => setFormData({...formData, level: parseInt(e.target.value)})}
+                        min="1"
+                        max="99"
+                        required
+                      />
+                      {formErrors.level && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.level[0]}</p>
+                      )}
+                      <p className="text-gray-500 text-xs mt-1">Higher = more authority (100 is Super Admin)</p>
+                    </div>
+
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-3 h-full">
+                        <input
+                          type="checkbox"
+                          id="is_active"
+                          className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          checked={formData.is_active}
+                          onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+                        />
+                        <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+                          Active Role
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="label">Slug *</label>
-                  <input
-                    type="text"
-                    className={`input-field ${formErrors.slug ? 'border-red-500' : ''}`}
-                    value={formData.slug}
-                    onChange={(e) => setFormData({...formData, slug: e.target.value})}
-                    placeholder="e.g., content-manager"
-                    required
-                    disabled={selectedRole?.slug === 'super-admin'} // Can't change super-admin slug
-                  />
-                  {formErrors.slug && (
-                    <p className="text-red-500 text-sm mt-1">{formErrors.slug[0]}</p>
-                  )}
-                  <p className="text-gray-500 text-xs mt-1">Lowercase, hyphens only (auto-generated from name)</p>
-                </div>
-
-                <div>
-                  <label className="label">Description</label>
-                  <textarea
-                    className="input-field"
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    placeholder="Brief description of this role"
-                    rows="2"
-                  />
-                </div>
-
-                <div>
-                  <label className="label">Level (1-99) *</label>
-                  <input
-                    type="number"
-                    className={`input-field ${formErrors.level ? 'border-red-500' : ''}`}
-                    value={formData.level}
-                    onChange={(e) => setFormData({...formData, level: parseInt(e.target.value)})}
-                    min="1"
-                    max="99"
-                    required
-                  />
-                  {formErrors.level && (
-                    <p className="text-red-500 text-sm mt-1">{formErrors.level[0]}</p>
-                  )}
-                  <p className="text-gray-500 text-xs mt-1">Higher level = more authority (100 reserved for Super Admin)</p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
-                  />
-                  <label htmlFor="is_active" className="text-sm text-gray-700">Active Role</label>
-                </div>
-
-                <div>
-                  <label className="label">Permissions</label>
-                  <div className="border border-gray-300 rounded-lg p-4 max-h-96 overflow-y-auto bg-gray-50">
-                    <div className="mb-3 flex items-center justify-between pb-2 border-b border-gray-200">
-                      <span className="text-sm font-medium text-gray-700">
-                        Selected: {formData.permissions.length} / {permissions.length}
+                {/* Permissions Section */}
+                <div className="space-y-4 pt-4 border-t border-gray-200">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Permissions</h3>
+                    <p className="text-sm text-gray-600">Select the permissions this role should have</p>
+                  </div>
+                  
+          <div className="border border-gray-300 rounded-lg overflow-hidden">
+            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-700">
+                        {formData.permissions.length} of {permissions.length} selected
                       </span>
-                      <div className="flex gap-2">
+                      <div className="flex gap-3">
                         <button
                           type="button"
                           onClick={() => setFormData({...formData, permissions: permissions.map(p => p.slug)})}
-                          className="text-xs text-blue-600 hover:text-blue-700"
+                          className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
                         >
                           Select All
                         </button>
                         <button
                           type="button"
                           onClick={() => setFormData({...formData, permissions: []})}
-                          className="text-xs text-red-600 hover:text-red-700"
+                          className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
                         >
                           Clear All
                         </button>
                       </div>
                     </div>
                     
-                    {Object.entries(groupPermissionsByResource()).map(([resource, perms]) => (
-                      <div key={resource} className="mb-4 last:mb-0">
-                        <h4 className="font-semibold text-gray-900 capitalize mb-2 flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                          {resource}
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-4">
-                          {perms.map((perm) => (
-                            <label key={perm.id} className="flex items-start gap-2 text-sm hover:bg-white p-2 rounded cursor-pointer">
-                              <input
-                                type="checkbox"
-                                className="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                checked={formData.permissions.includes(perm.slug)}
-                                onChange={() => handlePermissionToggle(perm.slug)}
-                              />
-                              <div className="flex-1">
-                                <span className="text-gray-900 font-medium">{perm.name}</span>
-                                {perm.description && (
-                                  <p className="text-xs text-gray-500">{perm.description}</p>
-                                )}
-                              </div>
-                            </label>
-                          ))}
+                    <div className="p-4 max-h-80 overflow-y-auto bg-white">
+                      {Object.entries(groupPermissionsByResource()).map(([resource, perms]) => (
+                        <div key={resource} className="mb-6 last:mb-0">
+                          <h4 className="font-semibold text-gray-900 capitalize mb-3 flex items-center gap-2 text-sm">
+                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                            {resource.replace('-', ' ')}
+                            <span className="text-xs text-gray-500 font-normal">({perms.length})</span>
+                          </h4>
+                          <div className="space-y-2 pl-4">
+                            {perms.map((perm) => (
+                              <label 
+                                key={perm.id} 
+                                className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors group"
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                  checked={formData.permissions.includes(perm.slug)}
+                                  onChange={() => handlePermissionToggle(perm.slug)}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium text-gray-900 group-hover:text-primary-600 transition-colors">
+                                    {perm.name}
+                                  </div>
+                                  {perm.description && (
+                                    <p className="text-xs text-gray-500 mt-0.5">{perm.description}</p>
+                                  )}
+                                </div>
+                              </label>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                   {formErrors.permissions && (
-                    <p className="text-red-500 text-sm mt-1">{formErrors.permissions[0]}</p>
+                    <p className="text-red-500 text-sm mt-2">{formErrors.permissions[0]}</p>
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-4 border-t border-gray-200">
-                  <button 
-                    type="submit" 
-                    className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Saving...' : (selectedRole ? 'Update Role' : 'Create Role')}
-                  </button>
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-6 border-t border-gray-200 bg-white">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
@@ -421,6 +447,23 @@ const Roles = () => {
                     disabled={submitting}
                   >
                     Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Saving...
+                      </span>
+                    ) : (
+                      selectedRole ? 'Update Role' : 'Create Role'
+                    )}
                   </button>
                 </div>
               </form>
