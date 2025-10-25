@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\LoginLog;
 use App\Services\AuditLogService;
 use App\Mail\WelcomeEmail;
+use App\Mail\SecurityAlert;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -105,17 +106,40 @@ class AuthController extends Controller
         }
 
         // Update last login information
+        $previousIp = $user->last_login_ip;
+        $currentIp = $request->ip();
+        
         $user->update([
             'last_login_at' => now(),
-            'last_login_ip' => $request->ip(),
+            'last_login_ip' => $currentIp,
         ]);
 
         // Log the login
         LoginLog::create([
             'user_id' => $user->id,
-            'ip_address' => $request->ip(),
+            'ip_address' => $currentIp,
             'user_agent' => $request->userAgent() ?? 'Unknown',
         ]);
+
+        // Check for suspicious login (new IP address)
+        if ($previousIp && $previousIp !== $currentIp) {
+            try {
+                Mail::to($user->email)->send(new SecurityAlert(
+                    $user,
+                    'New Login Detected',
+                    'We detected a login to your account from a new IP address.',
+                    [
+                        'ip_address' => $currentIp,
+                        'user_agent' => $request->userAgent() ?? 'Unknown',
+                        'location' => 'Unknown', // Could integrate IP geolocation service
+                        'time' => now()->format('F j, Y \a\t g:i A'),
+                        'previous_ip' => $previousIp,
+                    ]
+                ));
+            } catch (\Exception $e) {
+                Log::error('Failed to send security alert email: ' . $e->getMessage());
+            }
+        }
 
         // Audit log for login
         AuditLogService::log(
