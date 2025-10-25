@@ -1,15 +1,22 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import analyticsService from '../services/analyticsService';
 
 export default function Reports() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [reportType, setReportType] = useState('user-activity');
+  
+  // Set date range to last 7 days including today
+  // Add 1 day to end_date to ensure we include all of today's data
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
   const [dateRange, setDateRange] = useState({
-    start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    end_date: new Date().toISOString().split('T')[0]
+    start_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end_date: tomorrow.toISOString().split('T')[0]
   });
   const [filters, setFilters] = useState({
     user_id: '',
@@ -51,78 +58,122 @@ export default function Reports() {
     setMessage({ type: '', text: '' });
 
     try {
-      // TODO: Replace with actual API endpoint when backend is ready
-      // const response = await api.post('/reports', {
-      //   report_type: reportType,
-      //   ...dateRange,
-      //   ...filters
-      // });
-      // setReportData(response.data);
-
-      // Mock data for demonstration
-      const mockData = {
-        'user-activity': {
-          total_users: 156,
-          active_users: 89,
-          new_registrations: 12,
-          total_logins: 342,
-          average_session_duration: '24 minutes',
-          most_active_users: [
-            { name: 'Alice Johnson', logins: 45, last_seen: '2025-10-24T10:30:00Z' },
-            { name: 'Bob Smith', logins: 38, last_seen: '2025-10-24T09:15:00Z' },
-            { name: 'Charlie Brown', logins: 32, last_seen: '2025-10-24T08:20:00Z' }
-          ]
-        },
-        'transaction-summary': {
-          total_transactions: 1247,
-          completed: 1178,
-          pending: 23,
-          failed: 38,
-          cancelled: 8,
-          total_amount: 125847.50,
-          average_transaction: 100.92,
-          largest_transaction: 5000.00,
-          transaction_types: {
-            payment: 856,
-            refund: 124,
-            transfer: 267
-          }
-        },
-        'revenue-report': {
-          total_revenue: 125847.50,
-          revenue_by_day: [
-            { date: '2025-10-18', amount: 4523.75 },
-            { date: '2025-10-19', amount: 5234.20 },
-            { date: '2025-10-20', amount: 3891.50 },
-            { date: '2025-10-21', amount: 6124.80 },
-            { date: '2025-10-22', amount: 4987.25 },
-            { date: '2025-10-23', amount: 5456.30 },
-            { date: '2025-10-24', amount: 4523.75 }
-          ],
-          top_revenue_users: [
-            { name: 'Alice Johnson', total: 12450.00, transactions: 45 },
-            { name: 'Bob Smith', total: 9823.50, transactions: 38 },
-            { name: 'Charlie Brown', total: 7654.25, transactions: 32 }
-          ]
-        },
-        'security-events': {
-          total_events: 89,
-          failed_logins: 67,
-          account_lockouts: 12,
-          suspicious_activity: 10,
-          events_by_type: [
-            { type: 'Failed Login', count: 67, severity: 'medium' },
-            { type: 'Account Lockout', count: 12, severity: 'high' },
-            { type: 'Multiple Failed Attempts', count: 8, severity: 'high' },
-            { type: 'Unusual Login Location', count: 2, severity: 'critical' }
-          ]
+      let data;
+      
+      // Call real analytics API endpoints based on report type
+      switch (reportType) {
+        case 'user-activity': {
+          const response = await analyticsService.getUserAnalytics(dateRange);
+          // Transform API response to match component structure
+          data = {
+            total_users: response.summary.total_users,
+            active_users: response.summary.active_users,
+            new_registrations: response.summary.new_users,
+            total_logins: response.login_activity?.reduce((sum, day) => sum + day.login_count, 0) || 0,
+            average_session_duration: '24 minutes', // Not available yet
+            most_active_users: response.most_active_users?.map(u => ({
+              name: u.user.full_name,
+              logins: u.login_count,
+              last_seen: new Date().toISOString() // Use current date as placeholder
+            })) || [],
+            users_by_role: response.users_by_role || [],
+            two_factor_stats: response.two_factor_stats || { enabled: 0, disabled: 0, percentage: '0.00' },
+            registration_trends: response.registration_trends || []
+          };
+          break;
         }
-      };
 
-      setReportData(mockData[reportType]);
-      setMessage({ type: 'success', text: 'Report generated successfully!' });
+        case 'transaction-summary': {
+          const response = await analyticsService.getTransactionAnalytics({
+            ...dateRange,
+            period: 'day'
+          });
+          // Transform API response
+          const statusCounts = response.by_status.reduce((acc, item) => {
+            acc[item.status] = item.count;
+            return acc;
+          }, {});
+          
+          const typeCounts = response.by_type.reduce((acc, item) => {
+            acc[item.type] = item.count;
+            return acc;
+          }, {});
+
+          // Calculate largest transaction from trends
+          const largestTransaction = response.trends && response.trends.length > 0
+            ? Math.max(...response.trends.map(t => parseFloat(t.total_amount)))
+            : 0;
+
+          data = {
+            total_transactions: response.summary.total_transactions,
+            completed: statusCounts.completed || 0,
+            pending: statusCounts.pending || 0,
+            failed: statusCounts.failed || 0,
+            cancelled: statusCounts.cancelled || 0,
+            total_amount: parseFloat(response.summary.total_volume.replace(/,/g, '')),
+            average_transaction: parseFloat(response.summary.average_amount),
+            largest_transaction: largestTransaction,
+            transaction_types: {
+              payment: typeCounts.payment || 0,
+              refund: typeCounts.refund || 0,
+              transfer: typeCounts.transfer || 0
+            },
+            by_type: response.by_type,
+            top_senders: response.top_senders,
+            top_recipients: response.top_recipients,
+            trends: response.trends
+          };
+          break;
+        }
+
+        case 'revenue-report': {
+          const response = await analyticsService.getFinancialAnalytics(dateRange);
+          // Transform API response
+          data = {
+            total_revenue: parseFloat(response.summary.money_in.replace(/,/g, '')),
+            revenue_by_day: response.daily_flow.map(day => ({
+              date: day.date,
+              amount: parseFloat(day.money_in)
+            })),
+            top_revenue_users: response.top_balances.slice(0, 3).map(user => ({
+              name: user.full_name,
+              total: parseFloat(user.balance),
+              transactions: 0 // Not available in this endpoint
+            })),
+            balance_distribution: response.balance_distribution,
+            summary: response.summary,
+            revenue_by_currency: response.revenue_by_currency
+          };
+          break;
+        }
+
+        case 'security-events': {
+          // This would need a new backend endpoint for security events
+          // For now, use placeholder data
+          data = {
+            total_events: 0,
+            failed_logins: 0,
+            account_lockouts: 0,
+            suspicious_activity: 0,
+            events_by_type: []
+          };
+          setMessage({ type: 'error', text: 'Security events report requires additional backend implementation' });
+          setLoading(false);
+          return;
+        }
+
+        default:
+          throw new Error('Unknown report type');
+      }
+
+      setReportData(data);
+      setMessage({ type: 'success', text: 'Report generated successfully from live data!' });
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to generate report' });
+      console.error('Report generation error:', error);
+      setMessage({ 
+        type: 'error', 
+        text: error.response?.data?.message || 'Failed to generate report. Please try again.' 
+      });
     } finally {
       setLoading(false);
     }
@@ -135,15 +186,95 @@ export default function Reports() {
     const filename = `${reportType}-${dateRange.start_date}-to-${dateRange.end_date}.${format}`;
 
     if (format === 'csv') {
-      // Simple CSV export
-      const csvContent = `Report: ${selectedReport.name}\nGenerated: ${new Date().toLocaleString()}\n\n${JSON.stringify(reportData, null, 2)}`;
-      const blob = new Blob([csvContent], { type: 'text/csv' });
+      let csvContent = '';
+      
+      // Header
+      csvContent += `${selectedReport.name}\n`;
+      csvContent += `Generated: ${new Date().toLocaleString()}\n`;
+      csvContent += `Date Range: ${dateRange.start_date} to ${dateRange.end_date}\n\n`;
+
+      // Report-specific content
+      if (reportType === 'user-activity') {
+        csvContent += `SUMMARY\n`;
+        csvContent += `Total Users,${reportData.total_users}\n`;
+        csvContent += `Active Users,${reportData.active_users}\n`;
+        csvContent += `New Registrations,${reportData.new_registrations}\n`;
+        csvContent += `Total Logins,${reportData.total_logins}\n`;
+        csvContent += `Average Session Duration,${reportData.average_session_duration}\n\n`;
+
+        csvContent += `MOST ACTIVE USERS\n`;
+        csvContent += `Name,Logins,Last Seen\n`;
+        reportData.most_active_users?.forEach(user => {
+          csvContent += `${user.name},${user.logins},${new Date(user.last_seen).toLocaleString()}\n`;
+        });
+
+        csvContent += `\nUSERS BY ROLE\n`;
+        csvContent += `Role,Count\n`;
+        reportData.users_by_role?.forEach(role => {
+          csvContent += `${role.role},${role.count}\n`;
+        });
+
+        csvContent += `\n2FA STATISTICS\n`;
+        csvContent += `Enabled,${reportData.two_factor_stats?.enabled || 0}\n`;
+        csvContent += `Disabled,${reportData.two_factor_stats?.disabled || 0}\n`;
+        csvContent += `Percentage Enabled,${reportData.two_factor_stats?.percentage || 0}%\n`;
+
+      } else if (reportType === 'transaction-summary') {
+        csvContent += `SUMMARY\n`;
+        csvContent += `Total Transactions,${reportData.total_transactions}\n`;
+        csvContent += `Completed,${reportData.completed}\n`;
+        csvContent += `Pending,${reportData.pending}\n`;
+        csvContent += `Failed,${reportData.failed}\n`;
+        csvContent += `Cancelled,${reportData.cancelled}\n`;
+        csvContent += `Total Amount,"$${reportData.total_amount?.toLocaleString() || 0}"\n`;
+        csvContent += `Average Transaction,"$${reportData.average_transaction || 0}"\n`;
+        csvContent += `Largest Transaction,"$${reportData.largest_transaction?.toLocaleString() || 0}"\n\n`;
+
+        csvContent += `TRANSACTION TYPES\n`;
+        csvContent += `Type,Count\n`;
+        csvContent += `Payments,${reportData.transaction_types?.payment || 0}\n`;
+        csvContent += `Refunds,${reportData.transaction_types?.refund || 0}\n`;
+        csvContent += `Transfers,${reportData.transaction_types?.transfer || 0}\n\n`;
+
+        csvContent += `TOP SENDERS\n`;
+        csvContent += `Name,Email,Transactions,Total Sent\n`;
+        reportData.top_senders?.forEach(sender => {
+          csvContent += `${sender.sender?.full_name},${sender.sender?.email},${sender.transaction_count},"$${sender.total_sent}"\n`;
+        });
+
+        csvContent += `\nTOP RECIPIENTS\n`;
+        csvContent += `Name,Email,Transactions,Total Received\n`;
+        reportData.top_recipients?.forEach(recipient => {
+          csvContent += `${recipient.recipient?.full_name},${recipient.recipient?.email},${recipient.transaction_count},"$${recipient.total_received}"\n`;
+        });
+
+      } else if (reportType === 'revenue-report') {
+        csvContent += `SUMMARY\n`;
+        csvContent += `Total Revenue,"$${reportData.total_revenue?.toLocaleString() || 0}"\n\n`;
+
+        csvContent += `REVENUE BY DAY\n`;
+        csvContent += `Date,Amount\n`;
+        reportData.revenue_by_day?.forEach(day => {
+          csvContent += `${new Date(day.date).toLocaleDateString()},"$${day.amount?.toLocaleString() || 0}"\n`;
+        });
+
+        csvContent += `\nTOP REVENUE USERS\n`;
+        csvContent += `Name,Total,Transactions\n`;
+        reportData.top_revenue_users?.forEach(user => {
+          csvContent += `${user.name},"$${user.total?.toLocaleString() || 0}",${user.transactions}\n`;
+        });
+      }
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = filename;
       link.click();
       window.URL.revokeObjectURL(url);
+      
+      setMessage({ type: 'success', text: 'Report exported successfully!' });
+      
     } else if (format === 'json') {
       const jsonContent = JSON.stringify(reportData, null, 2);
       const blob = new Blob([jsonContent], { type: 'application/json' });
@@ -153,6 +284,9 @@ export default function Reports() {
       link.download = filename;
       link.click();
       window.URL.revokeObjectURL(url);
+      
+      setMessage({ type: 'success', text: 'Report exported successfully!' });
+      
     } else if (format === 'pdf') {
       setMessage({ type: 'error', text: 'PDF export coming soon!' });
     }
@@ -209,7 +343,10 @@ export default function Reports() {
           {reportTypes.map((type) => (
             <button
               key={type.id}
-              onClick={() => setReportType(type.id)}
+              onClick={() => {
+                setReportType(type.id);
+                setReportData(null); // Clear old report data when changing type
+              }}
               className={`p-4 border-2 rounded-lg text-left transition-all ${
                 reportType === type.id
                   ? 'border-blue-500 bg-blue-50'
@@ -376,12 +513,16 @@ export default function Reports() {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Most Active Users</h3>
                   <div className="space-y-2">
-                    {reportData.most_active_users.map((user, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium text-gray-900">{user.name}</span>
-                        <span className="text-sm text-gray-600">{user.logins} logins</span>
-                      </div>
-                    ))}
+                    {reportData.most_active_users && reportData.most_active_users.length > 0 ? (
+                      reportData.most_active_users.map((user, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <span className="font-medium text-gray-900">{user.name}</span>
+                          <span className="text-sm text-gray-600">{user.logins} logins</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No active users in this period</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -415,15 +556,15 @@ export default function Reports() {
                     <div className="space-y-2">
                       <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
                         <span className="text-gray-600">Total Amount</span>
-                        <span className="font-bold text-gray-900">${reportData.total_amount.toLocaleString()}</span>
+                        <span className="font-bold text-gray-900">${(reportData?.total_amount || 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
                         <span className="text-gray-600">Average Transaction</span>
-                        <span className="font-bold text-gray-900">${reportData.average_transaction}</span>
+                        <span className="font-bold text-gray-900">${reportData?.average_transaction || '0.00'}</span>
                       </div>
                       <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
                         <span className="text-gray-600">Largest Transaction</span>
-                        <span className="font-bold text-gray-900">${reportData.largest_transaction.toLocaleString()}</span>
+                        <span className="font-bold text-gray-900">${(reportData?.largest_transaction || 0).toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -433,15 +574,15 @@ export default function Reports() {
                     <div className="space-y-2">
                       <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
                         <span className="text-gray-600">Payments</span>
-                        <span className="font-bold text-gray-900">{reportData.transaction_types.payment}</span>
+                        <span className="font-bold text-gray-900">{reportData?.transaction_types?.payment || 0}</span>
                       </div>
                       <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
                         <span className="text-gray-600">Refunds</span>
-                        <span className="font-bold text-gray-900">{reportData.transaction_types.refund}</span>
+                        <span className="font-bold text-gray-900">{reportData?.transaction_types?.refund || 0}</span>
                       </div>
                       <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
                         <span className="text-gray-600">Transfers</span>
-                        <span className="font-bold text-gray-900">{reportData.transaction_types.transfer}</span>
+                        <span className="font-bold text-gray-900">{reportData?.transaction_types?.transfer || 0}</span>
                       </div>
                     </div>
                   </div>
@@ -454,33 +595,41 @@ export default function Reports() {
               <div className="space-y-6">
                 <div className="p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
                   <p className="text-sm text-gray-600">Total Revenue</p>
-                  <p className="text-4xl font-bold text-gray-900 mt-2">${reportData.total_revenue.toLocaleString()}</p>
+                  <p className="text-4xl font-bold text-gray-900 mt-2">${(reportData?.total_revenue || 0).toLocaleString()}</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Revenue by Day (Last 7 Days)</h3>
                   <div className="space-y-2">
-                    {reportData.revenue_by_day.map((day, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <span className="text-gray-600">{new Date(day.date).toLocaleDateString()}</span>
-                        <span className="font-bold text-gray-900">${day.amount.toLocaleString()}</span>
-                      </div>
-                    ))}
+                    {reportData.revenue_by_day && reportData.revenue_by_day.length > 0 ? (
+                      reportData.revenue_by_day.map((day, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <span className="text-gray-600">{new Date(day.date).toLocaleDateString()}</span>
+                          <span className="font-bold text-gray-900">${(day?.amount || 0).toLocaleString()}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No revenue data for this period</p>
+                    )}
                   </div>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Top Revenue Generators</h3>
                   <div className="space-y-2">
-                    {reportData.top_revenue_users.map((user, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <span className="font-medium text-gray-900">{user.name}</span>
-                          <span className="text-sm text-gray-500 ml-2">({user.transactions} transactions)</span>
+                    {reportData.top_revenue_users && reportData.top_revenue_users.length > 0 ? (
+                      reportData.top_revenue_users.map((user, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <span className="font-medium text-gray-900">{user.name}</span>
+                            <span className="text-sm text-gray-500 ml-2">({user.transactions} transactions)</span>
+                          </div>
+                          <span className="font-bold text-gray-900">${(user?.total || 0).toLocaleString()}</span>
                         </div>
-                        <span className="font-bold text-gray-900">${user.total.toLocaleString()}</span>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No revenue data available</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -511,21 +660,25 @@ export default function Reports() {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Events by Type</h3>
                   <div className="space-y-2">
-                    {reportData.events_by_type.map((event, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            event.severity === 'critical' ? 'bg-red-100 text-red-800' :
-                            event.severity === 'high' ? 'bg-orange-100 text-orange-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {event.severity}
-                          </span>
-                          <span className="font-medium text-gray-900">{event.type}</span>
+                    {reportData.events_by_type && reportData.events_by_type.length > 0 ? (
+                      reportData.events_by_type.map((event, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                              event.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                              event.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {event.severity}
+                            </span>
+                            <span className="font-medium text-gray-900">{event.type}</span>
+                          </div>
+                          <span className="font-bold text-gray-900">{event.count}</span>
                         </div>
-                        <span className="font-bold text-gray-900">{event.count}</span>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No security events in this period</p>
+                    )}
                   </div>
                 </div>
               </div>

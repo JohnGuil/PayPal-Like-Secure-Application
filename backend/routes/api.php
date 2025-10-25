@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\AnalyticsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -121,5 +122,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Reports (Permission checked in controller)
     Route::prefix('reports')->group(function () {
         Route::post('/', [ReportController::class, 'generate']); // Generate report
+    });
+
+    // Analytics (Permission checked in controller)
+    Route::prefix('analytics')->group(function () {
+        Route::get('/dashboard', [AnalyticsController::class, 'dashboard']); // Dashboard overview
+        Route::get('/transactions', [AnalyticsController::class, 'transactionAnalytics']); // Transaction analytics
+        Route::get('/users', [AnalyticsController::class, 'userAnalytics']); // User analytics
+        Route::get('/financial', [AnalyticsController::class, 'financialAnalytics']); // Financial analytics
     });
 });
