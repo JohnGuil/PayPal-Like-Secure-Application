@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\LoginLog;
 use App\Services\AuditLogService;
+use App\Mail\WelcomeEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
@@ -41,8 +44,8 @@ class AuthController extends Controller
             'is_verified' => false,
         ]);
 
-        // Assign default 'user' role to new registrations
-        $user->assignRole('user');
+        // Assign default 'User' role to new registrations
+        $user->assignRole('User');
 
         // Log registration
         AuditLogService::log(
@@ -54,6 +57,14 @@ class AuthController extends Controller
             ['full_name' => $user->full_name, 'email' => $user->email],
             $request
         );
+
+        // Send welcome email
+        try {
+            Mail::to($user->email)->send(new WelcomeEmail($user));
+        } catch (\Exception $e) {
+            // Log error but don't fail registration
+            Log::error('Failed to send welcome email: ' . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Registration successful! Please login.',

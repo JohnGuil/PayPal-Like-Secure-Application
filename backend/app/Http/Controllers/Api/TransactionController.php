@@ -9,9 +9,13 @@ use App\Http\Requests\RefundTransactionRequest;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Mail\TransactionSent;
+use App\Mail\TransactionReceived;
+use App\Mail\TransactionRefunded;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class TransactionController extends Controller
 {
@@ -182,6 +186,17 @@ class TransactionController extends Controller
                 $request
             );
 
+            // Send email notifications
+            try {
+                // Email to sender
+                Mail::to($transaction->sender->email)->send(new TransactionSent($transaction));
+                
+                // Email to recipient
+                Mail::to($transaction->recipient->email)->send(new TransactionReceived($transaction));
+            } catch (\Exception $e) {
+                Log::error('Failed to send transaction emails: ' . $e->getMessage());
+            }
+
             Log::info('Transaction completed', [
                 'transaction_id' => $transaction->id,
                 'sender_id' => $request->user()->id,
@@ -327,6 +342,16 @@ class TransactionController extends Controller
                 ['is_refunded' => true, 'refund_reason' => $request->reason],
                 $request
             );
+
+            // Send refund email notification
+            try {
+                // Email to original sender (who gets the refund)
+                Mail::to($originalTransaction->sender->email)->send(
+                    new TransactionRefunded($originalTransaction, $refundTransaction)
+                );
+            } catch (\Exception $e) {
+                Log::error('Failed to send refund email: ' . $e->getMessage());
+            }
 
             Log::info('Transaction refunded', [
                 'original_transaction_id' => $originalTransaction->id,
