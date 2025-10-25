@@ -130,5 +130,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/transactions', [AnalyticsController::class, 'transactionAnalytics']); // Transaction analytics
         Route::get('/users', [AnalyticsController::class, 'userAnalytics']); // User analytics
         Route::get('/financial', [AnalyticsController::class, 'financialAnalytics']); // Financial analytics
+        Route::get('/security', [AnalyticsController::class, 'securityAnalytics']); // Security analytics
     });
 });

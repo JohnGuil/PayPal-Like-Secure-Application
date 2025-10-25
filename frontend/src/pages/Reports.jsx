@@ -148,18 +148,24 @@ export default function Reports() {
         }
 
         case 'security-events': {
-          // This would need a new backend endpoint for security events
-          // For now, use placeholder data
+          const response = await analyticsService.getSecurityAnalytics(dateRange);
+          // Transform API response to match component structure
           data = {
-            total_events: 0,
-            failed_logins: 0,
-            account_lockouts: 0,
-            suspicious_activity: 0,
-            events_by_type: []
+            total_events: response.summary.failed_logins + response.summary.locked_accounts,
+            failed_logins: response.summary.failed_logins,
+            account_lockouts: response.summary.total_lockouts,
+            users_with_failed_logins: response.summary.users_with_failed_logins,
+            currently_locked: response.currently_locked_accounts?.length || 0,
+            top_failed_users: response.top_failed_users || [],
+            failure_reasons: response.failure_reasons || [],
+            recent_suspicious_activity: response.recent_suspicious_activity || [],
+            currently_locked_accounts: response.currently_locked_accounts || [],
+            trends: {
+              failed_logins: response.trends.failed_logins || [],
+              success_rate: response.trends.success_rate || []
+            }
           };
-          setMessage({ type: 'error', text: 'Security events report requires additional backend implementation' });
-          setLoading(false);
-          return;
+          break;
         }
 
         default:
@@ -638,9 +644,10 @@ export default function Reports() {
             {/* Security Events Report */}
             {reportType === 'security-events' && reportData && (
               <div className="space-y-6">
+                {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600">Total Events</p>
+                    <p className="text-sm text-gray-600">Total Security Events</p>
                     <p className="text-2xl font-bold text-gray-900 mt-1">{reportData.total_events}</p>
                   </div>
                   <div className="p-4 bg-yellow-50 rounded-lg">
@@ -648,39 +655,110 @@ export default function Reports() {
                     <p className="text-2xl font-bold text-gray-900 mt-1">{reportData.failed_logins}</p>
                   </div>
                   <div className="p-4 bg-red-50 rounded-lg">
-                    <p className="text-sm text-gray-600">Lockouts</p>
+                    <p className="text-sm text-gray-600">Account Lockouts</p>
                     <p className="text-2xl font-bold text-gray-900 mt-1">{reportData.account_lockouts}</p>
                   </div>
                   <div className="p-4 bg-purple-50 rounded-lg">
-                    <p className="text-sm text-gray-600">Suspicious Activity</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{reportData.suspicious_activity}</p>
+                    <p className="text-sm text-gray-600">Currently Locked</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{reportData.currently_locked}</p>
                   </div>
                 </div>
 
+                {/* Top Failed Login Users */}
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Events by Type</h3>
+                  <h3 className="font-semibold text-gray-900 mb-3">Top Users with Failed Logins</h3>
                   <div className="space-y-2">
-                    {reportData.events_by_type && reportData.events_by_type.length > 0 ? (
-                      reportData.events_by_type.map((event, index) => (
+                    {reportData.top_failed_users && reportData.top_failed_users.length > 0 ? (
+                      reportData.top_failed_users.map((user, index) => (
                         <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              event.severity === 'critical' ? 'bg-red-100 text-red-800' :
-                              event.severity === 'high' ? 'bg-orange-100 text-orange-800' :
-                              'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {event.severity}
-                            </span>
-                            <span className="font-medium text-gray-900">{event.type}</span>
+                          <div>
+                            <p className="font-medium text-gray-900">{user.name}</p>
+                            <p className="text-sm text-gray-600">{user.email}</p>
                           </div>
-                          <span className="font-bold text-gray-900">{event.count}</span>
+                          <span className="px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">
+                            {user.failed_attempts} attempts
+                          </span>
                         </div>
                       ))
                     ) : (
-                      <p className="text-gray-500 text-center py-4">No security events in this period</p>
+                      <p className="text-gray-500 text-center py-4">No failed login attempts in this period</p>
                     )}
                   </div>
                 </div>
+
+                {/* Failure Reasons Breakdown */}
+                {reportData.failure_reasons && reportData.failure_reasons.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-3">Failure Reasons</h3>
+                    <div className="space-y-2">
+                      {reportData.failure_reasons.map((reason, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <span className="font-medium text-gray-900">{reason.failure_reason}</span>
+                          <span className="font-bold text-gray-900">{reason.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Currently Locked Accounts */}
+                {reportData.currently_locked_accounts && reportData.currently_locked_accounts.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-3">🔒 Currently Locked Accounts</h3>
+                    <div className="space-y-2">
+                      {reportData.currently_locked_accounts.map((account, index) => (
+                        <div key={index} className="p-3 bg-red-50 rounded-lg border border-red-200">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="font-medium text-gray-900">{account.name}</p>
+                              <p className="text-sm text-gray-600">{account.email}</p>
+                              <p className="text-xs text-red-600 mt-1">
+                                {account.failed_attempts} failed attempts
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-red-800">
+                                {account.minutes_remaining} min remaining
+                              </p>
+                              <p className="text-xs text-gray-600">
+                                {new Date(account.locked_until).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Suspicious Activity */}
+                {reportData.recent_suspicious_activity && reportData.recent_suspicious_activity.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-3">⚠️ Recent Suspicious Activity</h3>
+                    <div className="space-y-2">
+                      {reportData.recent_suspicious_activity.slice(0, 10).map((activity, index) => (
+                        <div key={index} className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <p className="font-medium text-gray-900">{activity.name}</p>
+                              <p className="text-sm text-gray-600">{activity.email}</p>
+                            </div>
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-200 text-yellow-800">
+                              {activity.reason}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-gray-600">
+                            <span>IP: {activity.ip_address}</span>
+                            <span>{new Date(activity.timestamp).toLocaleString()}</span>
+                          </div>
+                          {activity.user_agent && (
+                            <p className="text-xs text-gray-500 mt-1 truncate">{activity.user_agent}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

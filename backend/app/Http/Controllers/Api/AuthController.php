@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\LoginLog;
 use App\Services\AuditLogService;
+use App\Services\SecurityService;
 use App\Mail\WelcomeEmail;
 use App\Mail\SecurityAlert;
 use Illuminate\Http\Request;
@@ -17,6 +18,13 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    protected $securityService;
+
+    public function __construct(SecurityService $securityService)
+    {
+        $this->securityService = $securityService;
+    }
+
     /**
      * Register a new user.
      */
@@ -89,11 +97,69 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
+        // Check if account is locked
+        if ($user && $this->securityService->isAccountLocked($user)) {
+            $lockTime = $user->locked_until->diffInMinutes(now());
+            
+            // Log failed attempt due to locked account
+            LoginLog::create([
+                'user_id' => $user->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent() ?? 'Unknown',
+                'is_successful' => false,
+                'failure_reason' => 'Account locked',
+            ]);
+
+            throw ValidationException::withMessages([
+                'email' => ["Your account is locked due to multiple failed login attempts. Please try again in {$lockTime} minutes."],
+            ]);
+        }
+
         if (!$user || !Hash::check($request->password, $user->password)) {
+            // Record failed login attempt
+            if ($user) {
+                $this->securityService->recordFailedLogin($user, 'Invalid credentials');
+                
+                // Log failed attempt
+                LoginLog::create([
+                    'user_id' => $user->id,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent() ?? 'Unknown',
+                    'is_successful' => false,
+                    'failure_reason' => 'Invalid credentials',
+                ]);
+
+                // Check if account is now locked
+                if ($this->securityService->isAccountLocked($user)) {
+                    $attemptsLeft = 0;
+                } else {
+                    $attemptsLeft = SecurityService::MAX_FAILED_ATTEMPTS - $user->failed_login_attempts;
+                }
+
+                $message = "The provided credentials are incorrect.";
+                if ($attemptsLeft > 0 && $attemptsLeft <= 2) {
+                    $message .= " You have {$attemptsLeft} attempt(s) remaining before your account is locked.";
+                }
+
+                throw ValidationException::withMessages([
+                    'email' => [$message],
+                ]);
+            }
+
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
+
+        // Reset failed attempts on successful login
+        $this->securityService->resetFailedAttempts($user);
+
+        // Detect suspicious activity
+        $suspicious = $this->securityService->detectSuspiciousActivity(
+            $user,
+            $request->ip(),
+            $request->userAgent() ?? 'Unknown'
+        );
 
         // Check if 2FA is enabled
         if ($user->two_factor_enabled) {
@@ -114,32 +180,13 @@ class AuthController extends Controller
             'last_login_ip' => $currentIp,
         ]);
 
-        // Log the login
+        // Log the successful login
         LoginLog::create([
             'user_id' => $user->id,
             'ip_address' => $currentIp,
             'user_agent' => $request->userAgent() ?? 'Unknown',
+            'is_successful' => true,
         ]);
-
-        // Check for suspicious login (new IP address)
-        if ($previousIp && $previousIp !== $currentIp) {
-            try {
-                Mail::to($user->email)->send(new SecurityAlert(
-                    $user,
-                    'New Login Detected',
-                    'We detected a login to your account from a new IP address.',
-                    [
-                        'ip_address' => $currentIp,
-                        'user_agent' => $request->userAgent() ?? 'Unknown',
-                        'location' => 'Unknown', // Could integrate IP geolocation service
-                        'time' => now()->format('F j, Y \a\t g:i A'),
-                        'previous_ip' => $previousIp,
-                    ]
-                ));
-            } catch (\Exception $e) {
-                Log::error('Failed to send security alert email: ' . $e->getMessage());
-            }
-        }
 
         // Audit log for login
         AuditLogService::log(

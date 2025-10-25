@@ -42,6 +42,17 @@ const analyticsService = {
     const response = await api.get('/analytics/financial', { params });
     return response.data;
   },
+
+  /**
+   * Get security analytics
+   * @param {Object} params - Query parameters
+   * @param {string} params.start_date - Start date (YYYY-MM-DD)
+   * @param {string} params.end_date - End date (YYYY-MM-DD)
+   */
+  getSecurityAnalytics: async (params = {}) => {
+    const response = await api.get('/analytics/security', { params });
+    return response.data;
+  },
 };
 
 export default analyticsService;

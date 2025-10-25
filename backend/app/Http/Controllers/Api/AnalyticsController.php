@@ -6,12 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\LoginLog;
+use App\Services\SecurityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class AnalyticsController extends Controller
 {
+    protected $securityService;
+
+    public function __construct(SecurityService $securityService)
+    {
+        $this->securityService = $securityService;
+    }
+
     /**
      * Get transaction analytics and statistics.
      */
@@ -385,6 +393,137 @@ class AnalyticsController extends Controller
                     'error_rate' => $errorRate,
                     'failed_transactions' => $failedTransactions,
                 ],
+            ],
+        ]);
+    }
+
+    /**
+     * Get security analytics and statistics.
+     */
+    public function securityAnalytics(Request $request)
+    {
+        $validated = $request->validate([
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+        ]);
+
+        $startDate = isset($validated['start_date']) ? Carbon::parse($validated['start_date']) : Carbon::now()->subDays(30);
+        $endDate = isset($validated['end_date']) ? Carbon::parse($validated['end_date']) : Carbon::now();
+
+        // Get security stats from SecurityService
+        $securityStats = $this->securityService->getSecurityStats($startDate, $endDate);
+
+        // Get failed login trends over time
+        $failedLoginTrends = LoginLog::where('is_successful', false)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        // Get top failed login users
+        $topFailedUsers = LoginLog::where('is_successful', false)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->select('user_id', DB::raw('COUNT(*) as failed_attempts'))
+            ->with('user:id,name,email')
+            ->groupBy('user_id')
+            ->orderByDesc('failed_attempts')
+            ->limit(10)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'user_id' => $log->user_id,
+                    'name' => $log->user->name ?? 'Unknown',
+                    'email' => $log->user->email ?? 'Unknown',
+                    'failed_attempts' => $log->failed_attempts,
+                ];
+            });
+
+        // Get failed login reasons breakdown
+        $failureReasons = LoginLog::where('is_successful', false)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereNotNull('failure_reason')
+            ->select('failure_reason', DB::raw('COUNT(*) as count'))
+            ->groupBy('failure_reason')
+            ->get();
+
+        // Get recent suspicious activity (failed logins from locked accounts)
+        $recentSuspiciousActivity = LoginLog::where('is_successful', false)
+            ->where('failure_reason', 'Account locked')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->with('user:id,name,email')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'user_id' => $log->user_id,
+                    'name' => $log->user->name ?? 'Unknown',
+                    'email' => $log->user->email ?? 'Unknown',
+                    'ip_address' => $log->ip_address,
+                    'user_agent' => $log->user_agent,
+                    'reason' => $log->failure_reason,
+                    'timestamp' => $log->created_at->toISOString(),
+                ];
+            });
+
+        // Get currently locked accounts
+        $currentlyLockedAccounts = User::whereNotNull('locked_until')
+            ->where('locked_until', '>', now())
+            ->select('id', 'name', 'email', 'locked_until', 'failed_login_attempts')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'locked_until' => $user->locked_until->toISOString(),
+                    'minutes_remaining' => $user->locked_until->diffInMinutes(now()),
+                    'failed_attempts' => $user->failed_login_attempts,
+                ];
+            });
+
+        // Get login success rate by day
+        $loginSuccessRate = LoginLog::whereBetween('created_at', [$startDate, $endDate])
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('SUM(CASE WHEN is_successful THEN 1 ELSE 0 END) as successful'),
+                DB::raw('SUM(CASE WHEN NOT is_successful THEN 1 ELSE 0 END) as failed'),
+                DB::raw('COUNT(*) as total')
+            )
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(function ($day) {
+                $successRate = $day->total > 0 ? round(($day->successful / $day->total) * 100, 2) : 0;
+                return [
+                    'date' => $day->date,
+                    'successful' => $day->successful,
+                    'failed' => $day->failed,
+                    'total' => $day->total,
+                    'success_rate' => $successRate,
+                ];
+            });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'period' => [
+                    'start' => $startDate->toISOString(),
+                    'end' => $endDate->toISOString(),
+                ],
+                'summary' => $securityStats,
+                'trends' => [
+                    'failed_logins' => $failedLoginTrends,
+                    'success_rate' => $loginSuccessRate,
+                ],
+                'top_failed_users' => $topFailedUsers,
+                'failure_reasons' => $failureReasons,
+                'currently_locked_accounts' => $currentlyLockedAccounts,
+                'recent_suspicious_activity' => $recentSuspiciousActivity,
             ],
         ]);
     }
