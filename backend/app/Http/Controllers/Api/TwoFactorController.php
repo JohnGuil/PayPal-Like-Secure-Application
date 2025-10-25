@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\LoginLog;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -93,6 +94,17 @@ class TwoFactorController extends Controller
             'two_factor_enabled' => true,
         ]);
 
+        // Audit log for 2FA enable
+        AuditLogService::log(
+            '2fa_enabled',
+            'User',
+            $user->id,
+            "User enabled 2FA: {$user->email}",
+            ['two_factor_enabled' => false],
+            ['two_factor_enabled' => true],
+            $request
+        );
+
         return response()->json([
             'message' => '2FA has been successfully enabled!',
             'two_factor_enabled' => true,
@@ -141,6 +153,17 @@ class TwoFactorController extends Controller
             'user_agent' => $request->userAgent() ?? 'Unknown',
         ]);
 
+        // Audit log for 2FA login
+        AuditLogService::log(
+            'user_login_2fa',
+            'User',
+            $user->id,
+            "User logged in with 2FA: {$user->email}",
+            null,
+            null,
+            $request
+        );
+
         // Create token
         $token = $user->createToken('auth-token')->plainTextToken;
 
@@ -181,6 +204,17 @@ class TwoFactorController extends Controller
             'two_factor_secret' => null,
             'two_factor_enabled' => false,
         ]);
+
+        // Audit log for 2FA disable
+        AuditLogService::log(
+            '2fa_disabled',
+            'User',
+            $user->id,
+            "User disabled 2FA: {$user->email}",
+            ['two_factor_enabled' => true],
+            ['two_factor_enabled' => false],
+            $request
+        );
 
         return response()->json([
             'message' => '2FA has been successfully disabled!',

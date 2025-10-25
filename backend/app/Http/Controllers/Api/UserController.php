@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -119,6 +120,21 @@ class UserController extends Controller
         // Load relationships
         $user->load(['roles', 'roles.permissions']);
 
+        // Audit log for user creation
+        AuditLogService::log(
+            'user_created',
+            'User',
+            $user->id,
+            "User created: " . $user->email . " by " . $request->user()->email,
+            null,
+            [
+                'full_name' => $user->full_name,
+                'email' => $user->email,
+                'roles' => $user->roles->pluck('name')->toArray()
+            ],
+            $request
+        );
+
         return response()->json([
             'message' => 'User created successfully',
             'user' => $user
@@ -136,6 +152,13 @@ class UserController extends Controller
         }
 
         $user = User::findOrFail($id);
+
+        // Store old values for audit
+        $oldValues = [
+            'full_name' => $user->full_name,
+            'email' => $user->email,
+            'mobile_number' => $user->mobile_number
+        ];
 
         $validator = Validator::make($request->all(), [
             'full_name' => 'sometimes|required|string|max:255',
@@ -187,6 +210,22 @@ class UserController extends Controller
         // Load relationships
         $user->load(['roles', 'roles.permissions']);
 
+        // Audit log for user update
+        AuditLogService::log(
+            'user_updated',
+            'User',
+            $user->id,
+            "User updated: " . $user->email . " by " . $request->user()->email,
+            $oldValues,
+            [
+                'full_name' => $user->full_name,
+                'email' => $user->email,
+                'mobile_number' => $user->mobile_number,
+                'roles' => $user->roles->pluck('name')->toArray()
+            ],
+            $request
+        );
+
         return response()->json([
             'message' => 'User updated successfully',
             'user' => $user
@@ -219,7 +258,25 @@ class UserController extends Controller
             ], 403);
         }
 
+        // Store user data for audit before deletion
+        $userData = [
+            'full_name' => $user->full_name,
+            'email' => $user->email,
+            'roles' => $user->roles->pluck('name')->toArray()
+        ];
+
         $user->delete();
+
+        // Audit log for user deletion
+        AuditLogService::log(
+            'user_deleted',
+            'User',
+            $id,
+            "User deleted: " . $userData['email'] . " by " . $request->user()->email,
+            $userData,
+            null,
+            $request
+        );
 
         return response()->json([
             'message' => 'User deleted successfully'

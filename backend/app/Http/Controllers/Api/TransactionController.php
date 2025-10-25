@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateTransactionStatusRequest;
 use App\Http\Requests\RefundTransactionRequest;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -164,6 +165,23 @@ class TransactionController extends Controller
             // Load relationships
             $transaction->load(['sender', 'recipient']);
 
+            // Audit log for transaction creation
+            AuditLogService::log(
+                'transaction_created',
+                'Transaction',
+                $transaction->id,
+                "Transaction created: $" . $transaction->amount . " from " . $transaction->sender->email . " to " . $transaction->recipient->email,
+                null,
+                [
+                    'amount' => $transaction->amount,
+                    'type' => $transaction->type,
+                    'sender_id' => $transaction->sender_id,
+                    'recipient_id' => $transaction->recipient_id,
+                    'status' => $transaction->status
+                ],
+                $request
+            );
+
             Log::info('Transaction completed', [
                 'transaction_id' => $transaction->id,
                 'sender_id' => $request->user()->id,
@@ -298,6 +316,17 @@ class TransactionController extends Controller
 
             // Load relationships
             $refundTransaction->load(['sender', 'recipient', 'originalTransaction']);
+
+            // Audit log for refund
+            AuditLogService::log(
+                'transaction_refunded',
+                'Transaction',
+                $originalTransaction->id,
+                "Transaction refunded: $" . $originalTransaction->amount . " - Original ID: " . $originalTransaction->id,
+                ['is_refunded' => false, 'status' => $originalTransaction->status],
+                ['is_refunded' => true, 'refund_reason' => $request->reason],
+                $request
+            );
 
             Log::info('Transaction refunded', [
                 'original_transaction_id' => $originalTransaction->id,

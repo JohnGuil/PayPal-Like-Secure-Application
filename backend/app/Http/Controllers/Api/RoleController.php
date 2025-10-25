@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\Permission;
 use App\Models\User;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -95,6 +96,22 @@ class RoleController extends Controller
             $role->syncPermissions($validated['permissions']);
         }
 
+        // Log role creation
+        AuditLogService::log(
+            'role_created',
+            'Role',
+            $role->id,
+            'Role created: ' . $role->name . ' (' . $role->slug . ')',
+            null,
+            [
+                'name' => $role->name,
+                'slug' => $role->slug,
+                'level' => $role->level,
+                'permissions' => $validated['permissions'] ?? []
+            ],
+            $request
+        );
+
         return response()->json([
             'message' => 'Role created successfully!',
             'role' => $role->load('permissions'),
@@ -112,6 +129,15 @@ class RoleController extends Controller
                 'message' => 'Cannot modify super-admin role.',
             ], 403);
         }
+
+        // Capture old values before update
+        $oldValues = [
+            'name' => $role->name,
+            'slug' => $role->slug,
+            'level' => $role->level,
+            'is_active' => $role->is_active,
+            'permissions' => $role->permissions->pluck('slug')->toArray()
+        ];
 
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255', 'unique:roles,name,' . $role->id],
@@ -134,6 +160,23 @@ class RoleController extends Controller
         if (isset($validated['permissions'])) {
             $role->syncPermissions($validated['permissions']);
         }
+
+        // Log role update with before/after state
+        AuditLogService::log(
+            'role_updated',
+            'Role',
+            $role->id,
+            'Role updated: ' . $role->name,
+            $oldValues,
+            [
+                'name' => $role->name,
+                'slug' => $role->slug,
+                'level' => $role->level,
+                'is_active' => $role->is_active,
+                'permissions' => $validated['permissions'] ?? $role->permissions->pluck('slug')->toArray()
+            ],
+            $request
+        );
 
         return response()->json([
             'message' => 'Role updated successfully!',
@@ -161,7 +204,26 @@ class RoleController extends Controller
             ], 422);
         }
 
+        // Preserve role data before deletion for audit log
+        $roleData = [
+            'name' => $role->name,
+            'slug' => $role->slug,
+            'level' => $role->level,
+            'permissions' => $role->permissions->pluck('slug')->toArray()
+        ];
+
         $role->delete();
+
+        // Log role deletion
+        AuditLogService::log(
+            'role_deleted',
+            'Role',
+            $role->id,
+            'Role deleted: ' . $roleData['name'] . ' (' . $roleData['slug'] . ')',
+            $roleData,
+            null,
+            request()
+        );
 
         return response()->json([
             'message' => 'Role deleted successfully!',
@@ -189,6 +251,21 @@ class RoleController extends Controller
         if ($validated['set_as_primary'] ?? false) {
             $user->update(['primary_role_id' => $role->id]);
         }
+
+        // Log role assignment
+        AuditLogService::log(
+            'role_assigned',
+            'User',
+            $user->id,
+            'Role "' . $role->name . '" assigned to user: ' . $user->email,
+            null,
+            [
+                'role' => $role->slug,
+                'is_primary' => $validated['set_as_primary'] ?? false,
+                'user_email' => $user->email
+            ],
+            $request
+        );
 
         return response()->json([
             'message' => 'Role assigned successfully!',
@@ -228,6 +305,20 @@ class RoleController extends Controller
             $newPrimaryRole = $user->roles()->first();
             $user->update(['primary_role_id' => $newPrimaryRole?->id]);
         }
+
+        // Log role revocation
+        AuditLogService::log(
+            'role_revoked',
+            'User',
+            $user->id,
+            'Role "' . $role->name . '" revoked from user: ' . $user->email,
+            [
+                'role' => $role->slug,
+                'user_email' => $user->email
+            ],
+            null,
+            $request
+        );
 
         return response()->json([
             'message' => 'Role revoked successfully!',

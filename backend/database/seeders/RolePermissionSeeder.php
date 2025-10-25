@@ -61,57 +61,61 @@ class RolePermissionSeeder extends Seeder
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate(
-                ['slug' => $permission['slug']],
-                $permission
+                ['slug' => $permission['slug'], 'guard_name' => 'web'],
+                array_merge($permission, ['guard_name' => 'web'])
             );
         }
 
         // Create Roles with hierarchical levels
         $superAdmin = Role::firstOrCreate(
-            ['slug' => 'super-admin'],
+            ['slug' => 'super-admin', 'guard_name' => 'web'],
             [
                 'name' => 'Super Admin',
                 'description' => 'Full system access with all permissions',
                 'level' => 100,
                 'is_active' => true,
+                'guard_name' => 'web',
             ]
         );
 
         $admin = Role::firstOrCreate(
-            ['slug' => 'admin'],
+            ['slug' => 'admin', 'guard_name' => 'web'],
             [
                 'name' => 'Admin',
                 'description' => 'Administrative access to manage users and settings',
                 'level' => 80,
                 'is_active' => true,
+                'guard_name' => 'web',
             ]
         );
 
         $manager = Role::firstOrCreate(
-            ['slug' => 'manager'],
+            ['slug' => 'manager', 'guard_name' => 'web'],
             [
                 'name' => 'Manager',
                 'description' => 'Management level access to view reports and transactions',
                 'level' => 50,
                 'is_active' => true,
+                'guard_name' => 'web',
             ]
         );
 
         $user = Role::firstOrCreate(
-            ['slug' => 'user'],
+            ['slug' => 'user', 'guard_name' => 'web'],
             [
                 'name' => 'User',
                 'description' => 'Standard user with basic permissions',
                 'level' => 10,
                 'is_active' => true,
+                'guard_name' => 'web',
             ]
         );
 
         // Assign all permissions to Super Admin
-        $superAdmin->syncPermissions(Permission::all()->pluck('slug')->toArray());
+        $superAdmin->syncPermissions(Permission::all());
 
         // Admin permissions (everything except system-critical operations)
-        $admin->syncPermissions([
+        $adminPermissions = Permission::whereIn('slug', [
             'view-users',
             'create-users',
             'update-users',
@@ -125,27 +129,30 @@ class RolePermissionSeeder extends Seeder
             'view-system-settings',
             'view-audit-logs',
             'generate-reports',
-        ]);
+        ])->get();
+        $admin->syncPermissions($adminPermissions);
 
         // Manager permissions
-        $manager->syncPermissions([
+        $managerPermissions = Permission::whereIn('slug', [
             'view-users',
             'view-roles',
             'view-all-transactions',
             'view-all-login-logs',
             'view-admin-dashboard',
             'generate-reports',
-        ]);
+        ])->get();
+        $manager->syncPermissions($managerPermissions);
 
         // User permissions (basic access)
-        $user->syncPermissions([
+        $userPermissions = Permission::whereIn('slug', [
             'manage-own-account',
             'enable-2fa',
             'view-login-logs',
             'view-transactions',
             'create-transactions',
             'view-dashboard',
-        ]);
+        ])->get();
+        $user->syncPermissions($userPermissions);
 
         $this->command->info('✅ Roles and Permissions seeded successfully!');
         $this->command->info('📊 Created ' . Permission::count() . ' permissions');

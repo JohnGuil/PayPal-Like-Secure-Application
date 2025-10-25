@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use App\Models\Role;
 
 class SampleUsersSeeder extends Seeder
 {
@@ -12,6 +13,12 @@ class SampleUsersSeeder extends Seeder
      */
     public function run(): void
     {
+        // Get roles
+        $superAdminRole = Role::where('slug', 'super-admin')->first();
+        $adminRole = Role::where('slug', 'admin')->first();
+        $managerRole = Role::where('slug', 'manager')->first();
+        $userRole = Role::where('slug', 'user')->first();
+
         // Create Super Admin
         $superAdmin = User::firstOrCreate(
             ['email' => 'superadmin@paypal.test'],
@@ -19,11 +26,13 @@ class SampleUsersSeeder extends Seeder
                 'full_name' => 'Super Administrator',
                 'mobile_number' => '+1234567890',
                 'password' => bcrypt('SuperAdmin123!'),
-                'two_factor_enabled' => false
+                'two_factor_enabled' => false,
+                'balance' => 10000.00,
+                'currency' => 'USD',
             ]
         );
-        $superAdmin->assignRole('super-admin');
-        $superAdmin->update(['primary_role_id' => 1]);
+        $superAdmin->roles()->sync([$superAdminRole->id]);
+        $superAdmin->update(['primary_role_id' => $superAdminRole->id]);
         $this->command->info('✅ Super Admin created: superadmin@paypal.test');
 
         // Create Admin
@@ -33,11 +42,13 @@ class SampleUsersSeeder extends Seeder
                 'full_name' => 'System Administrator',
                 'mobile_number' => '+1234567891',
                 'password' => bcrypt('Admin123!'),
-                'two_factor_enabled' => false
+                'two_factor_enabled' => false,
+                'balance' => 5000.00,
+                'currency' => 'USD',
             ]
         );
-        $admin->assignRole('admin');
-        $admin->update(['primary_role_id' => 2]);
+        $admin->roles()->sync([$adminRole->id]);
+        $admin->update(['primary_role_id' => $adminRole->id]);
         $this->command->info('✅ Admin created: admin@paypal.test');
 
         // Create Manager
@@ -47,11 +58,13 @@ class SampleUsersSeeder extends Seeder
                 'full_name' => 'Account Manager',
                 'mobile_number' => '+1234567892',
                 'password' => bcrypt('Manager123!'),
-                'two_factor_enabled' => false
+                'two_factor_enabled' => false,
+                'balance' => 3000.00,
+                'currency' => 'USD',
             ]
         );
-        $manager->assignRole('manager');
-        $manager->update(['primary_role_id' => 3]);
+        $manager->roles()->sync([$managerRole->id]);
+        $manager->update(['primary_role_id' => $managerRole->id]);
         $this->command->info('✅ Manager created: manager@paypal.test');
 
         // Create Regular User
@@ -61,11 +74,13 @@ class SampleUsersSeeder extends Seeder
                 'full_name' => 'Regular User',
                 'mobile_number' => '+1234567893',
                 'password' => bcrypt('User123!'),
-                'two_factor_enabled' => false
+                'two_factor_enabled' => false,
+                'balance' => 1000.00,
+                'currency' => 'USD',
             ]
         );
-        $user->assignRole('user');
-        $user->update(['primary_role_id' => 4]);
+        $user->roles()->sync([$userRole->id]);
+        $user->update(['primary_role_id' => $userRole->id]);
         $this->command->info('✅ User created: user@paypal.test');
 
         $this->command->info("\n" . str_repeat('=', 50));

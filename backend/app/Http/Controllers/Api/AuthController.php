@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\LoginLog;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
@@ -42,6 +43,17 @@ class AuthController extends Controller
 
         // Assign default 'user' role to new registrations
         $user->assignRole('user');
+
+        // Log registration
+        AuditLogService::log(
+            'user_registered',
+            'User',
+            $user->id,
+            "New user registered: {$user->email}",
+            null,
+            ['full_name' => $user->full_name, 'email' => $user->email],
+            $request
+        );
 
         return response()->json([
             'message' => 'Registration successful! Please login.',
@@ -94,6 +106,17 @@ class AuthController extends Controller
             'user_agent' => $request->userAgent() ?? 'Unknown',
         ]);
 
+        // Audit log for login
+        AuditLogService::log(
+            'user_login',
+            'User',
+            $user->id,
+            "User logged in: {$user->email}",
+            null,
+            null,
+            $request
+        );
+
         // Create token
         $token = $user->createToken('auth-token')->plainTextToken;
 
@@ -116,6 +139,19 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        $user = $request->user();
+        
+        // Audit log for logout
+        AuditLogService::log(
+            'user_logout',
+            'User',
+            $user->id,
+            "User logged out: {$user->email}",
+            null,
+            null,
+            $request
+        );
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
