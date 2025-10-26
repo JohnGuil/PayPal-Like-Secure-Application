@@ -253,7 +253,7 @@ class ReportController extends Controller
      */
     private function generateSecurityEventsReport($startDate, $endDate, $request)
     {
-        $query = LoginLog::with('user')->whereBetween('created_at', [$startDate, $endDate]);
+        $query = LoginLog::with(['user:id,full_name,email'])->whereBetween('created_at', [$startDate, $endDate]);
 
         $logs = $query->get();
 
