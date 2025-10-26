@@ -27,13 +27,15 @@ export default function AdminDashboard() {
       setStats({
         total_users: dashboardData.system?.total_users || 0,
         active_users: dashboardData.today?.active_users || 0,
-        total_transactions: dashboardData.this_month?.transactions || 0,
-        total_revenue: dashboardData.this_month?.volume || 0,
+        total_transactions: dashboardData.all_time?.transactions || 0,
+        total_revenue: dashboardData.all_time?.volume || 0,
         pending_transactions: dashboardData.system?.pending_transactions || 0,
         failed_transactions: dashboardData.system?.health?.failed_transactions || 0,
         new_users_today: 0, // Not yet tracked
         transactions_today: dashboardData.today?.transactions || 0,
+        transactions_this_month: dashboardData.this_month?.transactions || 0,
         revenue_today: dashboardData.today?.volume || 0,
+        revenue_this_month: dashboardData.this_month?.volume || 0,
         system_health: {
           database: dashboardData.system?.health?.database || 'unknown',
           api_response_time: dashboardData.system?.health?.db_response_time || 0,
@@ -191,8 +193,13 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Total Transactions</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.total_transactions}</p>
-              <p className="text-sm text-green-600 mt-2">+{stats?.transactions_today} today</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.total_transactions?.toLocaleString()}</p>
+              <div className="mt-2 space-y-0.5">
+                {stats?.transactions_today > 0 && (
+                  <p className="text-xs text-green-600">+{stats?.transactions_today} today</p>
+                )}
+                <p className="text-xs text-blue-600">{stats?.transactions_this_month} this month</p>
+              </div>
             </div>
             <div className="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center">
               <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -208,7 +215,12 @@ export default function AdminDashboard() {
             <div>
               <p className="text-sm text-gray-500">Total Revenue</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">${(stats?.total_revenue || 0).toLocaleString()}</p>
-              <p className="text-sm text-green-600 mt-2">+${(stats?.revenue_today || 0).toFixed(2)} today</p>
+              <div className="mt-2 space-y-0.5">
+                {stats?.revenue_today > 0 && (
+                  <p className="text-xs text-green-600">+${(stats?.revenue_today || 0).toFixed(2)} today</p>
+                )}
+                <p className="text-xs text-blue-600">${(stats?.revenue_this_month || 0).toLocaleString()} this month</p>
+              </div>
             </div>
             <div className="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center">
               <svg className="w-7 h-7 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

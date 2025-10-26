@@ -388,6 +388,10 @@ class AnalyticsController extends Controller
             ? round(($twoFactorEnabled / $totalUsers) * 100, 1)
             : 0;
 
+        // All-time totals
+        $totalTransactions = Transaction::count();
+        $totalVolume = Transaction::where('status', 'completed')->sum('amount');
+
         return response()->json([
             'today' => [
                 'transactions' => $todayTransactions,
@@ -401,6 +405,10 @@ class AnalyticsController extends Controller
             'this_month' => [
                 'transactions' => $monthTransactions,
                 'volume' => (float) $monthVolume,
+            ],
+            'all_time' => [
+                'transactions' => $totalTransactions,
+                'volume' => (float) $totalVolume,
             ],
             'recent_transactions' => $recentTransactions,
             'system' => [
