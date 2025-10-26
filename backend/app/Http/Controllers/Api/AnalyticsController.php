@@ -243,6 +243,12 @@ class AnalyticsController extends Controller
             ->where('status', 'completed')
             ->sum('amount');
 
+        // Platform revenue (fees collected)
+        $platformRevenue = Transaction::whereBetween('created_at', [$startDate, $endDate])
+            ->where('status', 'completed')
+            ->whereIn('type', ['payment']) // Only payments generate fees
+            ->sum('fee');
+
         // Balance distribution
         $balanceRanges = [
             '0-100' => User::whereBetween('balance', [0, 100])->count(),
@@ -278,7 +284,8 @@ class AnalyticsController extends Controller
             ->select(
                 DB::raw("TO_CHAR(created_at, 'YYYY-MM-DD') as date"),
                 DB::raw("SUM(CASE WHEN type = 'payment' THEN amount ELSE 0 END) as money_in"),
-                DB::raw("SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END) as money_out")
+                DB::raw("SUM(CASE WHEN type = 'refund' THEN amount ELSE 0 END) as money_out"),
+                DB::raw("SUM(CASE WHEN type = 'payment' THEN fee ELSE 0 END) as revenue")
             )
             ->groupBy('date')
             ->orderBy('date')
@@ -290,6 +297,7 @@ class AnalyticsController extends Controller
                 'money_in' => number_format($moneyIn, 2),
                 'money_out' => number_format($moneyOut, 2),
                 'net_flow' => number_format($moneyIn - $moneyOut, 2),
+                'platform_revenue' => number_format($platformRevenue, 2),
                 'success_rate' => number_format($successRate, 2) . '%',
             ],
             'balance_distribution' => $balanceRanges,

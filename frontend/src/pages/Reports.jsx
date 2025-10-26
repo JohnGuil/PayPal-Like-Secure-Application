@@ -129,12 +129,12 @@ export default function Reports() {
 
         case 'revenue-report': {
           const response = await analyticsService.getFinancialAnalytics(dateRange);
-          // Transform API response
+          // Transform API response - use platform_revenue (fees) not money_in (transaction amounts)
           data = {
-            total_revenue: parseFloat(response.summary.money_in.replace(/,/g, '')),
+            total_revenue: parseFloat(response.summary.platform_revenue?.replace(/,/g, '') || 0),
             revenue_by_day: response.daily_flow.map(day => ({
               date: day.date,
-              amount: parseFloat(day.money_in)
+              amount: parseFloat(day.revenue || 0) // Use revenue (fees) not money_in
             })),
             top_revenue_users: response.top_balances.slice(0, 3).map(user => ({
               name: user.full_name,
