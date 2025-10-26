@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import notificationService from '../services/notificationService';
+import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -132,6 +134,14 @@ export const NotificationProvider = ({ children }) => {
   };
 
   /**
+   * Clear all notifications from state (used on logout)
+   */
+  const clearNotifications = () => {
+    setNotifications([]);
+    setUnreadCount(0);
+  };
+
+  /**
    * Refresh notifications and unread count
    */
   const refresh = async () => {
@@ -141,18 +151,29 @@ export const NotificationProvider = ({ children }) => {
     ]);
   };
 
-  // Auto-refresh unread count every 30 seconds
+  // Monitor user authentication state
   useEffect(() => {
-    // Initial fetch
-    fetchUnreadCount();
+    if (user) {
+      // User is logged in - fetch their notifications
+      fetchUnreadCount();
+    } else {
+      // User is logged out - clear notifications
+      clearNotifications();
+    }
+  }, [user]);
 
-    // Set up polling interval
+  // Auto-refresh unread count every 5 seconds for real-time updates
+  useEffect(() => {
+    // Only poll if user is authenticated
+    if (!user) return;
+
+    // Set up polling interval (5 seconds for faster notification updates)
     const interval = setInterval(() => {
       fetchUnreadCount();
-    }, 30000); // 30 seconds
+    }, 5000); // 5 seconds - more responsive while still being efficient
 
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   return (
     <NotificationContext.Provider
@@ -166,6 +187,7 @@ export const NotificationProvider = ({ children }) => {
         markAllAsRead,
         deleteNotification,
         clearRead,
+        clearNotifications,
         refresh,
       }}
     >
