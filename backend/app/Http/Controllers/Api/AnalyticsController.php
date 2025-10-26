@@ -499,7 +499,7 @@ class AnalyticsController extends Controller
         $topFailedUsers = LoginLog::where('is_successful', false)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->select('user_id', DB::raw('COUNT(*) as failed_attempts'))
-            ->with('user:id,name,email')
+            ->with('user:id,full_name,email')
             ->groupBy('user_id')
             ->orderByDesc('failed_attempts')
             ->limit(10)
@@ -507,7 +507,7 @@ class AnalyticsController extends Controller
             ->map(function ($log) {
                 return [
                     'user_id' => $log->user_id,
-                    'name' => $log->user->name ?? 'Unknown',
+                    'name' => $log->user->full_name ?? 'Unknown',
                     'email' => $log->user->email ?? 'Unknown',
                     'failed_attempts' => $log->failed_attempts,
                 ];
@@ -525,14 +525,14 @@ class AnalyticsController extends Controller
         $recentSuspiciousActivity = LoginLog::where('is_successful', false)
             ->where('failure_reason', 'Account locked')
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->with('user:id,name,email')
+            ->with('user:id,full_name,email')
             ->orderByDesc('created_at')
             ->limit(20)
             ->get()
             ->map(function ($log) {
                 return [
                     'user_id' => $log->user_id,
-                    'name' => $log->user->name ?? 'Unknown',
+                    'name' => $log->user->full_name ?? 'Unknown',
                     'email' => $log->user->email ?? 'Unknown',
                     'ip_address' => $log->ip_address,
                     'user_agent' => $log->user_agent,
