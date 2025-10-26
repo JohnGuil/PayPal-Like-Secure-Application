@@ -64,14 +64,14 @@ export default function AuditLogs() {
   };
 
   // Get unique roles for filter
-  const uniqueRoles = [...new Set(logs.map(log => log.role.slug))];
+  const uniqueRoles = [...new Set(logs.map(log => log.role?.slug).filter(Boolean))];
 
   const filteredLogs = logs.filter(log => {
     // Filter by action
     if (filterAction !== 'all' && log.action !== filterAction) return false;
     
     // Filter by role
-    if (filterRole !== 'all' && log.role.slug !== filterRole) return false;
+    if (filterRole !== 'all' && log.role?.slug !== filterRole) return false;
 
     // Search filter
     if (searchTerm) {
