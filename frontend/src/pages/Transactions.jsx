@@ -7,6 +7,7 @@ export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [filter, setFilter] = useState('all'); // all, sent, received
@@ -20,6 +21,10 @@ export default function Transactions() {
     description: '',
     transaction_type: 'payment'
   });
+
+  // Fee preview state
+  const [feePreview, setFeePreview] = useState(null);
+  const [loadingFee, setLoadingFee] = useState(false);
 
   // Refund form state
   const [refundReason, setRefundReason] = useState('');
@@ -62,8 +67,53 @@ export default function Transactions() {
     return num.toFixed(2);
   };
 
+  // Fetch fee preview when amount or type changes
+  const fetchFeePreview = async (amount, type) => {
+    if (!amount || parseFloat(amount) <= 0) {
+      setFeePreview(null);
+      return;
+    }
+
+    try {
+      setLoadingFee(true);
+      const response = await api.post('/transactions/preview-fee', {
+        amount: parseFloat(amount),
+        type: type
+      });
+      setFeePreview(response.data);
+    } catch (error) {
+      console.error('Error fetching fee preview:', error);
+      setFeePreview(null);
+    } finally {
+      setLoadingFee(false);
+    }
+  };
+
+  // Update amount handler with fee preview
+  const handleAmountChange = (value) => {
+    setFormData({ ...formData, amount: value });
+    if (value && parseFloat(value) > 0) {
+      fetchFeePreview(value, formData.transaction_type);
+    } else {
+      setFeePreview(null);
+    }
+  };
+
+  // Update type handler with fee preview
+  const handleTypeChange = (type) => {
+    setFormData({ ...formData, transaction_type: type });
+    if (formData.amount && parseFloat(formData.amount) > 0) {
+      fetchFeePreview(formData.amount, type);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Show confirmation modal instead of submitting directly
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmTransaction = async () => {
     try {
       await api.post('/transactions', {
         recipient_email: formData.recipient_email,
@@ -74,12 +124,14 @@ export default function Transactions() {
       
       alert('Transaction created successfully!');
       setShowCreateModal(false);
+      setShowConfirmModal(false);
       setFormData({
         recipient_email: '',
         amount: '',
         description: '',
         transaction_type: 'payment'
       });
+      setFeePreview(null);
       fetchTransactions();
       fetchUserBalance(); // Refresh balance after transaction
     } catch (error) {
@@ -421,7 +473,7 @@ export default function Transactions() {
                   min="0.01"
                   step="0.01"
                   value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  onChange={(e) => handleAmountChange(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="0.00"
                 />
@@ -433,14 +485,49 @@ export default function Transactions() {
                 </label>
                 <select
                   value={formData.transaction_type}
-                  onChange={(e) => setFormData({ ...formData, transaction_type: e.target.value })}
+                  onChange={(e) => handleTypeChange(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="payment">Payment</option>
+                  <option value="payment">Payment (Goods/Services)</option>
+                  <option value="transfer">Transfer (Friends & Family - FREE)</option>
                   <option value="refund">Refund</option>
-                  <option value="transfer">Transfer</option>
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.transaction_type === 'payment' && 'Fee: 2.9% + $0.30'}
+                  {formData.transaction_type === 'transfer' && 'No fees for transfers'}
+                  {formData.transaction_type === 'refund' && 'Fee will be returned'}
+                </p>
               </div>
+
+              {/* Real-time Fee Breakdown */}
+              {feePreview && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">💰 Fee Breakdown</span>
+                    {loadingFee && <span className="text-xs text-gray-500">Calculating...</span>}
+                  </div>
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Amount:</span>
+                      <span className="font-medium text-gray-900">${feePreview.amount.toFixed(2)}</span>
+                    </div>
+                    {feePreview.fee > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Transaction Fee:</span>
+                        <span className="font-medium text-orange-600">${feePreview.fee.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="border-t border-blue-300 pt-1.5 flex justify-between">
+                      <span className="font-semibold text-gray-700">You Pay:</span>
+                      <span className="font-bold text-gray-900">${feePreview.total_required.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-green-600">
+                      <span>Recipient Gets:</span>
+                      <span className="font-medium">${feePreview.breakdown.recipient_receives.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -465,12 +552,97 @@ export default function Transactions() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
                 >
-                  Create Transaction
+                  Send Money
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && feePreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-center mb-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            
+            <h2 className="text-2xl font-bold text-center mb-2">Confirm Transaction</h2>
+            <p className="text-gray-500 text-center mb-6 text-sm">
+              Please review the details before sending money
+            </p>
+
+            <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 text-sm">Recipient</span>
+                <span className="font-semibold text-gray-900">{formData.recipient_email}</span>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 text-sm">Type</span>
+                <span className="font-medium text-gray-700">
+                  {formData.transaction_type === 'payment' ? '💳 Payment' : 
+                   formData.transaction_type === 'transfer' ? '🎁 Transfer (Free)' : '↩️ Refund'}
+                </span>
+              </div>
+
+              <div className="border-t border-gray-200 pt-3 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Amount</span>
+                  <span className="font-medium text-gray-900">${feePreview.amount.toFixed(2)}</span>
+                </div>
+                
+                {feePreview.fee > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Transaction Fee</span>
+                    <span className="font-medium text-orange-600">+${feePreview.fee.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                <div className="border-t border-gray-300 pt-2 flex justify-between items-center">
+                  <span className="font-bold text-gray-700 text-lg">Total</span>
+                  <span className="font-bold text-gray-900 text-xl">${feePreview.total_required.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded p-2 mt-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-green-700">✓ Recipient receives</span>
+                  <span className="font-semibold text-green-800">${feePreview.breakdown.recipient_receives.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {formData.description && (
+                <div className="border-t border-gray-200 pt-3 mt-3">
+                  <span className="text-gray-600 text-sm block mb-1">Description</span>
+                  <p className="text-gray-800 text-sm">{formData.description}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmTransaction}
+                disabled={loading}
+                className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold disabled:bg-gray-400"
+              >
+                {loading ? 'Processing...' : 'Confirm & Send'}
+              </button>
+            </div>
           </div>
         </div>
       )}
