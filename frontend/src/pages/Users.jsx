@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import Select from '../components/Select';
 
 const Users = () => {
   const { user } = useAuth();
@@ -290,20 +291,15 @@ const Users = () => {
                   />
                 </div>
                 <div>
-                  <label className="label">Role</label>
-                  <select
-                    required
-                    className="input-field"
+                  <Select
+                    label="Role"
                     value={formData.role_id}
                     onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
-                  >
-                    <option value="">Select a role</option>
-                    {roles.map((role) => (
-                      <option key={role.id} value={role.id}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: '', label: 'Select a role' },
+                      ...roles.map(role => ({ value: role.id.toString(), label: role.name }))
+                    ]}
+                  />
                 </div>
                 <div className="flex gap-2">
                   <button type="submit" className="btn-primary flex-1">
@@ -368,20 +364,15 @@ const Users = () => {
                   />
                 </div>
                 <div>
-                  <label className="label">Role</label>
-                  <select
-                    required
-                    className="input-field"
+                  <Select
+                    label="Role"
                     value={formData.role_id}
                     onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
-                  >
-                    <option value="">Select a role</option>
-                    {roles.map((role) => (
-                      <option key={role.id} value={role.id}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: '', label: 'Select a role' },
+                      ...roles.map(role => ({ value: role.id.toString(), label: role.name }))
+                    ]}
+                  />
                 </div>
                 <div className="flex gap-2">
                   <button type="submit" className="btn-primary flex-1">

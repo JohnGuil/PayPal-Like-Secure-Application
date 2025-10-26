@@ -7,6 +7,7 @@ import TransactionTypePieChart from '../components/charts/TransactionTypePieChar
 import UserGrowthChart from '../components/charts/UserGrowthChart';
 import HourlyActivityChart from '../components/charts/HourlyActivityChart';
 import KPIWidget from '../components/charts/KPIWidget';
+import Select from '../components/Select';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -673,16 +674,17 @@ export default function AdminDashboard() {
               <h2 className="text-xl font-bold text-gray-900">Revenue & Volume Trend</h2>
               <p className="text-sm text-gray-600 mt-1">Track transaction volume and platform revenue over time</p>
             </div>
-            <select
+            <Select
               value={chartPeriod}
               onChange={(e) => setChartPeriod(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium bg-white hover:bg-gray-50 transition-colors"
-            >
-              <option value="7">Last 7 Days</option>
-              <option value="14">Last 14 Days</option>
-              <option value="30">Last 30 Days</option>
-              <option value="90">Last 90 Days</option>
-            </select>
+              options={[
+                { value: '7', label: 'Last 7 Days' },
+                { value: '14', label: 'Last 14 Days' },
+                { value: '30', label: 'Last 30 Days' },
+                { value: '90', label: 'Last 90 Days' }
+              ]}
+              className="w-full sm:w-48"
+            />
           </div>
           <div className="mt-4">
             <RevenueVolumeChart data={revenueVolumeData} loading={chartLoading} />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import Select from '../components/Select';
 
 export default function Transactions() {
   const { user } = useAuth();
@@ -483,15 +484,15 @@ export default function Transactions() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Transaction Type
                 </label>
-                <select
+                <Select
                   value={formData.transaction_type}
                   onChange={(e) => handleTypeChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="payment">Payment (Goods/Services)</option>
-                  <option value="transfer">Transfer (Friends & Family - FREE)</option>
-                  <option value="refund">Refund</option>
-                </select>
+                  options={[
+                    { value: 'payment', label: 'Payment (Goods/Services)' },
+                    { value: 'transfer', label: 'Transfer (Friends & Family - FREE)' },
+                    { value: 'refund', label: 'Refund' }
+                  ]}
+                />
                 <p className="text-xs text-gray-500 mt-1">
                   {formData.transaction_type === 'payment' && 'Fee: 2.9% + $0.30'}
                   {formData.transaction_type === 'transfer' && 'No fees for transfers'}
