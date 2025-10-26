@@ -12,9 +12,22 @@ export const AuthProvider = ({ children }) => {
     const storedUser = authService.getStoredUser();
     if (storedUser) {
       setUser(storedUser);
+      // Refresh user data from server to get latest permissions
+      refreshUser().catch(console.error);
     }
     setLoading(false);
   }, []);
+
+  // Refresh user data every 5 minutes to get latest permissions
+  useEffect(() => {
+    if (!user) return;
+    
+    const interval = setInterval(() => {
+      refreshUser().catch(console.error);
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   const login = async (credentials) => {
     const data = await authService.login(credentials);
@@ -51,6 +64,8 @@ export const AuthProvider = ({ children }) => {
       const data = await authService.getCurrentUser();
       if (data.user) {
         setUser(data.user);
+        // Also update localStorage to keep it in sync
+        localStorage.setItem('user', JSON.stringify(data.user));
       }
       return data;
     } catch (error) {

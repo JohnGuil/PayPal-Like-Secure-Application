@@ -12,6 +12,13 @@ const Users = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [perPage, setPerPage] = useState(15);
+  const [total, setTotal] = useState(0);
+  
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -27,14 +34,20 @@ const Users = () => {
   useEffect(() => {
     fetchUsers();
     fetchRoles();
-  }, []);
+  }, [currentPage, perPage]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/users');
+      const response = await api.get(`/users?page=${currentPage}&per_page=${perPage}`);
+      
       // Handle paginated response from Laravel
-      setUsers(response.data.data || response.data.users || []);
+      const data = response.data;
+      setUsers(data.data || []);
+      setCurrentPage(data.current_page || 1);
+      setTotalPages(data.last_page || 1);
+      setTotal(data.total || 0);
+      setPerPage(data.per_page || 15);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch users');
     } finally {
@@ -49,6 +62,16 @@ const Users = () => {
     } catch (err) {
       console.error('Failed to fetch roles:', err);
     }
+  };
+
+  const getRoleBadgeColor = (roleSlug) => {
+    const colors = {
+      'super-admin': 'bg-purple-100 text-purple-800 border border-purple-200',
+      'admin': 'bg-red-100 text-red-800 border border-red-200',
+      'manager': 'bg-blue-100 text-blue-800 border border-blue-200',
+      'user': 'bg-green-100 text-green-800 border border-green-200',
+    };
+    return colors[roleSlug] || 'bg-gray-100 text-gray-800 border border-gray-200';
   };
 
   const handleSubmit = async (e) => {
@@ -197,7 +220,7 @@ const Users = () => {
                     {u.mobile_number}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(u.primary_role?.slug)}`}>
                       {u.primary_role?.name || 'No Role'}
                     </span>
                   </td>
@@ -242,6 +265,66 @@ const Users = () => {
             </tbody>
           </table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{users.length > 0 ? ((currentPage - 1) * perPage) + 1 : 0}</span> to{' '}
+                  <span className="font-medium">{Math.min(currentPage * perPage, total)}</span> of{' '}
+                  <span className="font-medium">{total}</span> users
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`px-3 py-1 text-sm font-medium rounded-md ${
+                            currentPage === pageNum
+                              ? 'bg-primary-600 text-white'
+                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Create User Modal */}
@@ -292,17 +375,15 @@ const Users = () => {
                 </div>
                 <div>
                   <Select
-                    label="Role"
+                    label="Role *"
                     value={formData.role_id}
                     onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
-                    options={[
-                      { value: '', label: 'Select a role' },
-                      ...roles.map(role => ({ value: role.id.toString(), label: role.name }))
-                    ]}
+                    error={!formData.role_id ? 'Role is required' : ''}
+                    options={roles.map(role => ({ value: role.id.toString(), label: role.name }))}
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button type="submit" className="btn-primary flex-1">
+                  <button type="submit" className="btn-primary flex-1" disabled={!formData.role_id}>
                     Create User
                   </button>
                   <button
@@ -365,17 +446,15 @@ const Users = () => {
                 </div>
                 <div>
                   <Select
-                    label="Role"
+                    label="Role *"
                     value={formData.role_id}
                     onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
-                    options={[
-                      { value: '', label: 'Select a role' },
-                      ...roles.map(role => ({ value: role.id.toString(), label: role.name }))
-                    ]}
+                    error={!formData.role_id ? 'Role is required' : ''}
+                    options={roles.map(role => ({ value: role.id.toString(), label: role.name }))}
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button type="submit" className="btn-primary flex-1">
+                  <button type="submit" className="btn-primary flex-1" disabled={!formData.role_id}>
                     Update User
                   </button>
                   <button

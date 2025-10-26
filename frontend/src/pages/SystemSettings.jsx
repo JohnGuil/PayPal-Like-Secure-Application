@@ -56,14 +56,18 @@ export default function SystemSettings() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API endpoint when backend is ready
-      // const response = await api.get('/settings');
-      // setSettings(response.data);
+      const response = await api.get('/settings');
       
-      // Using default values defined above for now
+      // Merge fetched settings with defaults
+      setSettings(prevSettings => ({
+        ...prevSettings,
+        ...response.data
+      }));
+      
       setLoading(false);
     } catch (error) {
       console.error('Error fetching settings:', error);
+      setMessage({ type: 'error', text: 'Failed to load settings. Using defaults.' });
       setLoading(false);
     }
   };
@@ -73,12 +77,20 @@ export default function SystemSettings() {
     setMessage({ type: '', text: '' });
 
     try {
-      // TODO: Replace with actual API endpoint when backend is ready
-      // await api.put('/settings', settings);
+      await api.put('/settings', settings);
       
       setMessage({ type: 'success', text: 'Settings saved successfully!' });
+      
+      // Optionally refresh settings from server
+      setTimeout(() => {
+        fetchSettings();
+      }, 1000);
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to save settings' });
+      console.error('Error saving settings:', error);
+      setMessage({ 
+        type: 'error', 
+        text: error.response?.data?.message || 'Failed to save settings. Please try again.' 
+      });
     } finally {
       setSaving(false);
     }

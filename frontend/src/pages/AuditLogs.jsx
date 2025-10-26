@@ -18,69 +18,14 @@ export default function AuditLogs() {
   const fetchAuditLogs = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API endpoint when backend is ready
-      // const response = await api.get('/audit-logs');
-      // setLogs(response.data);
+      const response = await api.get('/audit-logs');
       
-      // Mock data for now
-      setLogs([
-        {
-          id: 1,
-          admin_user: { id: 1, name: 'Super Admin', email: 'superadmin@paypal.test' },
-          action: 'assigned',
-          role: { id: 2, name: 'Admin', slug: 'admin' },
-          permission: { id: 5, name: 'Create Users', slug: 'create-users' },
-          target_user: { id: 3, name: 'Bob Manager', email: 'bob@example.com' },
-          created_at: '2025-10-24T10:30:00Z'
-        },
-        {
-          id: 2,
-          admin_user: { id: 1, name: 'Super Admin', email: 'superadmin@paypal.test' },
-          action: 'revoked',
-          role: { id: 4, name: 'User', slug: 'user' },
-          permission: { id: 12, name: 'Delete Transactions', slug: 'delete-transactions' },
-          target_user: { id: 5, name: 'Alice User', email: 'alice@example.com' },
-          created_at: '2025-10-24T09:45:00Z'
-        },
-        {
-          id: 3,
-          admin_user: { id: 2, name: 'Admin User', email: 'admin@paypal.test' },
-          action: 'assigned',
-          role: { id: 3, name: 'Manager', slug: 'manager' },
-          permission: { id: 8, name: 'View All Transactions', slug: 'view-all-transactions' },
-          target_user: { id: 6, name: 'Charlie Manager', email: 'charlie@example.com' },
-          created_at: '2025-10-24T08:20:00Z'
-        },
-        {
-          id: 4,
-          admin_user: { id: 1, name: 'Super Admin', email: 'superadmin@paypal.test' },
-          action: 'assigned',
-          role: { id: 1, name: 'Super Admin', slug: 'super-admin' },
-          permission: { id: 20, name: 'View System Settings', slug: 'view-system-settings' },
-          target_user: { id: 2, name: 'Admin User', email: 'admin@paypal.test' },
-          created_at: '2025-10-23T16:10:00Z'
-        },
-        {
-          id: 5,
-          admin_user: { id: 2, name: 'Admin User', email: 'admin@paypal.test' },
-          action: 'revoked',
-          role: { id: 4, name: 'User', slug: 'user' },
-          permission: { id: 15, name: 'Update Roles', slug: 'update-roles' },
-          target_user: { id: 7, name: 'Diana User', email: 'diana@example.com' },
-          created_at: '2025-10-23T14:30:00Z'
-        },
-        {
-          id: 6,
-          admin_user: { id: 1, name: 'Super Admin', email: 'superadmin@paypal.test' },
-          action: 'assigned',
-          role: { id: 3, name: 'Manager', slug: 'manager' },
-          permission: { id: 9, name: 'View All Login Logs', slug: 'view-all-login-logs' },
-          target_user: { id: 8, name: 'Eve Manager', email: 'eve@example.com' },
-          created_at: '2025-10-23T11:15:00Z'
-        }
-      ]);
+      // Handle both paginated and non-paginated responses
+      const logsData = response.data.data || response.data;
+      setLogs(Array.isArray(logsData) ? logsData : []);
     } catch (error) {
       console.error('Error fetching audit logs:', error);
+      setLogs([]); // Set empty array on error
     } finally {
       setLoading(false);
     }

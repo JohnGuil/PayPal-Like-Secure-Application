@@ -90,7 +90,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'mobile_number' => 'nullable|string|max:20',
             'password' => 'required|string|min:8',
-            'role_id' => 'sometimes|exists:roles,id',
+            'role_id' => 'required|exists:roles,id',
             'role_ids' => 'sometimes|array',
             'role_ids.*' => 'exists:roles,id'
         ]);
@@ -111,9 +111,10 @@ class UserController extends Controller
         ]);
 
         // Assign roles - handle both single role_id and array of role_ids
+        // role_id is now required, so always assign at least one role
         if ($request->has('role_ids')) {
             $user->roles()->attach($request->role_ids);
-        } elseif ($request->has('role_id')) {
+        } else {
             $user->roles()->attach([$request->role_id]);
         }
 
@@ -172,7 +173,7 @@ class UserController extends Controller
             ],
             'mobile_number' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:8',
-            'role_id' => 'sometimes|exists:roles,id',
+            'role_id' => 'required|exists:roles,id',
             'role_ids' => 'sometimes|array',
             'role_ids.*' => 'exists:roles,id'
         ]);
@@ -200,10 +201,10 @@ class UserController extends Controller
 
         $user->save();
 
-        // Update roles if provided - handle both single role_id and array of role_ids
+        // Update roles - role_id is now required
         if ($request->has('role_ids')) {
             $user->roles()->sync($request->role_ids);
-        } elseif ($request->has('role_id')) {
+        } else {
             $user->roles()->sync([$request->role_id]);
         }
 

@@ -4,10 +4,21 @@ import { useAuth } from '../context/AuthContext';
 import NotificationDropdown from './NotificationDropdown';
 
 export default function Header({ toggleSidebar }) {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Debug function to manually refresh permissions
+  const handleRefreshPermissions = async () => {
+    try {
+      await refreshUser();
+      alert('✅ Permissions refreshed! Check the sidebar.');
+    } catch (error) {
+      alert('❌ Failed to refresh permissions');
+      console.error(error);
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -163,6 +174,21 @@ export default function Header({ toggleSidebar }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                   My Profile
+                </button>
+
+                {/* Debug: Refresh Permissions Button */}
+                <button
+                  onClick={() => {
+                    handleRefreshPermissions();
+                    setDropdownOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2 border-b border-gray-200"
+                  title="Refresh your permissions from server"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  🔄 Refresh Permissions
                 </button>
 
                 {!user?.two_factor_enabled ? (

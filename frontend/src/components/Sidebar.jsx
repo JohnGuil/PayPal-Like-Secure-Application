@@ -1,9 +1,17 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const { user } = useAuth();
   const location = useLocation();
+
+  // Debug: Log user permissions when they change
+  useEffect(() => {
+    if (user?.permissions) {
+      console.log('📋 User Permissions:', user.permissions.map(p => p.slug));
+    }
+  }, [user?.permissions]);
 
   // Helper function to check if user has a specific permission
   const hasPermission = (permission) => {
@@ -93,7 +101,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     },
     {
       section: 'Administration',
-      show: hasRole('super-admin') || hasRole('admin'),
+      // Show section if user has any admin-related permissions
+      show: hasPermission('view-admin-dashboard') || hasPermission('view-system-settings') || hasPermission('view-audit-logs') || hasPermission('generate-reports'),
       items: [
         {
           name: 'Admin Dashboard',

@@ -12,8 +12,10 @@ const Select = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [openUpward, setOpenUpward] = useState(false);
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
+  const buttonRef = useRef(null);
 
   // Get selected option label
   const selectedOption = options.find(opt => opt.value === value);
@@ -36,6 +38,19 @@ const Select = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Determine dropdown direction based on available space
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const dropdownHeight = 300; // Approximate max height of dropdown
+      
+      // Open upward if not enough space below and more space above
+      setOpenUpward(spaceBelow < dropdownHeight && spaceAbove > spaceBelow);
+    }
+  }, [isOpen]);
 
   // Focus search input when dropdown opens
   useEffect(() => {
@@ -65,6 +80,7 @@ const Select = ({
       
       {/* Select Button */}
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
@@ -98,7 +114,7 @@ const Select = ({
 
       {/* Dropdown Menu */}
       {isOpen && !disabled && (
-        <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-hidden">
+        <div className={`absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-hidden ${openUpward ? 'bottom-full mb-2' : 'mt-2'}`}>
           {/* Search Input (only show if more than 5 options) */}
           {options.length > 5 && (
             <div className="p-2 border-b border-gray-200">

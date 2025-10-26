@@ -38,6 +38,23 @@ class Role extends SpatieRole
     }
 
     /**
+     * Override Spatie's users() method to explicitly specify the User model.
+     * This fixes the "Class name must be a valid object or a string" error.
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function users(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->morphedByMany(
+            \App\Models\User::class,
+            'model',
+            'model_has_roles',
+            'role_id',
+            'model_id'
+        );
+    }
+
+    /**
      * Check if role has a specific permission (supports slug).
      * Spatie's hasPermissionTo requires exact permission name.
      */

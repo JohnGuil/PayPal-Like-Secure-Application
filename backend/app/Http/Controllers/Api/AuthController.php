@@ -220,6 +220,9 @@ class AuthController extends Controller
         // Create token
         $token = $user->createToken('auth-token')->plainTextToken;
 
+        // Load roles and permissions for the user
+        $user->load('roles.permissions', 'primaryRole');
+
         return response()->json([
             'message' => 'Login successful!',
             'token' => $token,
@@ -230,6 +233,30 @@ class AuthController extends Controller
                 'balance' => $user->balance,
                 'currency' => $user->currency,
                 'two_factor_enabled' => $user->two_factor_enabled,
+                'roles' => $user->roles->map(function ($role) {
+                    return [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'slug' => $role->slug,
+                        'level' => $role->level,
+                    ];
+                }),
+                'primary_role' => $user->primaryRole ? [
+                    'id' => $user->primaryRole->id,
+                    'name' => $user->primaryRole->name,
+                    'slug' => $user->primaryRole->slug,
+                ] : null,
+                'permissions' => $user->getAllPermissions()->map(function ($permission) {
+                    return [
+                        'id' => $permission->id,
+                        'name' => $permission->name,
+                        'slug' => $permission->slug,
+                        'resource' => $permission->resource,
+                        'action' => $permission->action,
+                    ];
+                }),
+                'is_admin' => $user->isAdmin(),
+                'is_super_admin' => $user->isSuperAdmin(),
             ],
         ], 200);
     }

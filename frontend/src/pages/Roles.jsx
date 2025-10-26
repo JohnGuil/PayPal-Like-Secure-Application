@@ -134,13 +134,26 @@ const Roles = () => {
   };
 
   const handleDelete = async (roleId) => {
-    if (!window.confirm('Are you sure you want to delete this role?')) return;
+    const role = roles.find(r => r.id === roleId);
+    const confirmMessage = `Are you sure you want to delete the role "${role?.name}"?\n\nThis action cannot be undone.`;
+    
+    if (!window.confirm(confirmMessage)) return;
     
     try {
+      setError(null);
       await api.delete(`/roles/${roleId}`);
-      fetchRoles();
+      await fetchRoles();
+      
+      // Show success message briefly
+      const successMsg = `Role "${role?.name}" deleted successfully!`;
+      setError(null);
+      alert(successMsg);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete role');
+      const errorMsg = err.response?.data?.message || 'Failed to delete role';
+      setError(errorMsg);
+      
+      // Scroll to top to show error
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -184,9 +197,24 @@ const Roles = () => {
           )}
         </div>
 
+        {/* Error Message */}
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-            {error}
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <p className="text-sm text-red-700 mt-1">{error}</p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="text-red-600 hover:text-red-800"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         )}
 
