@@ -10,6 +10,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\FeeCalculator;
+use App\Services\NotificationService;
 use App\Mail\TransactionSent;
 use App\Mail\TransactionReceived;
 use App\Mail\TransactionRefunded;
@@ -253,6 +254,41 @@ class TransactionController extends Controller
                 Log::error('Failed to send transaction emails: ' . $e->getMessage());
             }
 
+            // Create in-app notifications
+            $notificationService = app(NotificationService::class);
+            
+            // Notification for sender
+            $notificationService->create(
+                $transaction->sender_id,
+                'transaction',
+                'Payment Sent',
+                "You sent $" . number_format($transaction->amount, 2) . " to " . $transaction->recipient->full_name,
+                [
+                    'transaction_id' => $transaction->id,
+                    'amount' => $transaction->amount,
+                    'recipient' => $transaction->recipient->full_name,
+                ],
+                '/transactions',
+                'arrow-up',
+                'medium'
+            );
+
+            // Notification for recipient
+            $notificationService->create(
+                $transaction->recipient_id,
+                'transaction',
+                'Payment Received',
+                "You received $" . number_format($transaction->amount, 2) . " from " . $transaction->sender->full_name,
+                [
+                    'transaction_id' => $transaction->id,
+                    'amount' => $transaction->amount,
+                    'sender' => $transaction->sender->full_name,
+                ],
+                '/transactions',
+                'arrow-down',
+                'medium'
+            );
+
             Log::info('Transaction completed', [
                 'transaction_id' => $transaction->id,
                 'sender_id' => $request->user()->id,
@@ -408,6 +444,43 @@ class TransactionController extends Controller
             } catch (\Exception $e) {
                 Log::error('Failed to send refund email: ' . $e->getMessage());
             }
+
+            // Create in-app notifications for refund
+            $notificationService = app(NotificationService::class);
+            
+            // Notification for original sender (receives refund)
+            $notificationService->create(
+                $originalTransaction->sender_id,
+                'transaction',
+                'Refund Received',
+                "Refund of $" . number_format($originalTransaction->amount, 2) . " has been processed",
+                [
+                    'transaction_id' => $refundTransaction->id,
+                    'original_transaction_id' => $originalTransaction->id,
+                    'amount' => $originalTransaction->amount,
+                    'reason' => $request->reason,
+                ],
+                '/transactions',
+                'refresh',
+                'high'
+            );
+
+            // Notification for original recipient (issued refund)
+            $notificationService->create(
+                $originalTransaction->recipient_id,
+                'transaction',
+                'Refund Issued',
+                "You issued a refund of $" . number_format($originalTransaction->amount, 2),
+                [
+                    'transaction_id' => $refundTransaction->id,
+                    'original_transaction_id' => $originalTransaction->id,
+                    'amount' => $originalTransaction->amount,
+                    'reason' => $request->reason,
+                ],
+                '/transactions',
+                'refresh',
+                'high'
+            );
 
             Log::info('Transaction refunded', [
                 'original_transaction_id' => $originalTransaction->id,

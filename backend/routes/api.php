@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\AnalyticsController;
+use App\Http\Controllers\Api\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -139,5 +140,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/charts/user-growth', [AnalyticsController::class, 'userGrowthChart']); // User growth chart
         Route::get('/charts/hourly-activity', [AnalyticsController::class, 'hourlyActivity']); // Hourly activity heatmap
         Route::get('/charts/kpi-comparison', [AnalyticsController::class, 'kpiComparison']); // KPI comparison
+    });
+
+    // Notifications
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']); // Get all notifications
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']); // Get unread count
+        Route::patch('/{id}/read', [NotificationController::class, 'markAsRead']); // Mark as read
+        Route::patch('/mark-all-read', [NotificationController::class, 'markAllAsRead']); // Mark all as read
+        Route::delete('/{id}', [NotificationController::class, 'destroy']); // Delete notification
+        Route::delete('/clear-read', [NotificationController::class, 'clearRead']); // Clear all read
     });
 });

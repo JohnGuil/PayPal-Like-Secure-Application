@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\LoginLog;
 use App\Services\AuditLogService;
 use App\Services\SecurityService;
+use App\Services\NotificationService;
 use App\Mail\WelcomeEmail;
 use App\Mail\SecurityAlert;
 use Illuminate\Http\Request;
@@ -197,6 +198,23 @@ class AuthController extends Controller
             null,
             null,
             $request
+        );
+
+        // Create login notification
+        $notificationService = app(NotificationService::class);
+        $notificationService->create(
+            $user->id,
+            'security',
+            'New Login Detected',
+            "A new login was detected from " . ($request->userAgent() ?? 'Unknown device'),
+            [
+                'ip_address' => $currentIp,
+                'user_agent' => $request->userAgent(),
+                'timestamp' => now()->toIso8601String(),
+            ],
+            '/dashboard',
+            'shield-check',
+            'medium'
         );
 
         // Create token

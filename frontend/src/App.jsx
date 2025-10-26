@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AppLayout from './components/AppLayout';
 import Login from './pages/Login';
@@ -17,12 +18,14 @@ import AdminDashboard from './pages/AdminDashboard';
 import SystemSettings from './pages/SystemSettings';
 import AuditLogs from './pages/AuditLogs';
 import Reports from './pages/Reports';
+import Notifications from './pages/Notifications';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
+        <NotificationProvider>
+          <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
@@ -86,11 +89,14 @@ function App() {
                 <Reports />
               </ProtectedRoute>
             } />
+
+            <Route path="/notifications" element={<Notifications />} />
             
             <Route path="/setup-2fa" element={<TwoFactorSetup />} />
             <Route path="/disable-2fa" element={<TwoFactorDisable />} />
           </Route>
         </Routes>
+        </NotificationProvider>
       </AuthProvider>
     </Router>
   );
