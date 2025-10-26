@@ -17,6 +17,12 @@ export default function Transactions() {
   const [searchTerm, setSearchTerm] = useState('');
   const [balance, setBalance] = useState(0);
   
+  // Helper function to safely parse floats
+  const safeParseFloat = (value, fallback = 0) => {
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? fallback : parsed;
+  };
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
@@ -102,7 +108,8 @@ export default function Transactions() {
 
   // Fetch fee preview when amount or type changes
   const fetchFeePreview = async (amount, type) => {
-    if (!amount || parseFloat(amount) <= 0) {
+    const parsedAmount = safeParseFloat(amount);
+    if (!amount || parsedAmount <= 0) {
       setFeePreview(null);
       return;
     }
@@ -110,7 +117,7 @@ export default function Transactions() {
     try {
       setLoadingFee(true);
       const response = await api.post('/transactions/preview-fee', {
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         type: type
       });
       setFeePreview(response.data);
@@ -125,7 +132,8 @@ export default function Transactions() {
   // Update amount handler with fee preview
   const handleAmountChange = (value) => {
     setFormData({ ...formData, amount: value });
-    if (value && parseFloat(value) > 0) {
+    const parsedAmount = safeParseFloat(value);
+    if (value && parsedAmount > 0) {
       fetchFeePreview(value, formData.transaction_type);
     } else {
       setFeePreview(null);
@@ -148,14 +156,22 @@ export default function Transactions() {
 
   const handleConfirmTransaction = async () => {
     try {
+      const amount = safeParseFloat(formData.amount);
+      
+      // Validate amount
+      if (amount <= 0) {
+        toast.error('Please enter a valid amount greater than 0');
+        return;
+      }
+
       await api.post('/transactions', {
         recipient_email: formData.recipient_email,
-        amount: parseFloat(formData.amount),
+        amount: amount,
         description: formData.description,
         type: formData.transaction_type
       });
       
-      alert('Transaction created successfully!');
+      toast.success('Transaction created successfully!');
       setShowCreateModal(false);
       setShowConfirmModal(false);
       setFormData({
@@ -169,7 +185,7 @@ export default function Transactions() {
       fetchUserBalance(); // Refresh balance after transaction
     } catch (error) {
       console.error('Error creating transaction:', error);
-      alert(error.response?.data?.message || 'Failed to create transaction');
+      toast.error(error.response?.data?.message || 'Failed to create transaction');
     }
   };
 
@@ -180,7 +196,7 @@ export default function Transactions() {
         reason: refundReason
       });
       
-      alert('Transaction refunded successfully!');
+      toast.success('Transaction refunded successfully!');
       setShowRefundModal(false);
       setSelectedTransaction(null);
       setRefundReason('');
@@ -188,7 +204,7 @@ export default function Transactions() {
       fetchUserBalance(); // Refresh balance after refund
     } catch (error) {
       console.error('Error refunding transaction:', error);
-      alert(error.response?.data?.message || 'Failed to refund transaction');
+      toast.error(error.response?.data?.message || 'Failed to refund transaction');
     }
   };
 
