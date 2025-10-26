@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import Select from '../components/Select';
 
 export default function AuditLogs() {
   const { user } = useAuth();
@@ -201,37 +202,36 @@ export default function AuditLogs() {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Action Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Action</label>
-            <select
+          <div className="w-full lg:w-48">
+            <Select
+              label="Action"
               value={filterAction}
               onChange={(e) => setFilterAction(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="all">All Actions</option>
-              <option value="assigned">Assigned</option>
-              <option value="revoked">Revoked</option>
-            </select>
+              options={[
+                { value: 'all', label: 'All Actions' },
+                { value: 'assigned', label: 'Assigned' },
+                { value: 'revoked', label: 'Revoked' }
+              ]}
+            />
           </div>
 
           {/* Role Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-            <select
+          <div className="w-full lg:w-48">
+            <Select
+              label="Role"
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="all">All Roles</option>
-              {uniqueRoles.map(roleSlug => {
-                const role = logs.find(l => l.role.slug === roleSlug)?.role;
-                return (
-                  <option key={roleSlug} value={roleSlug}>
-                    {role?.name}
-                  </option>
-                );
-              })}
-            </select>
+              options={[
+                { value: 'all', label: 'All Roles' },
+                ...uniqueRoles.map(roleSlug => {
+                  const role = logs.find(l => l.role.slug === roleSlug)?.role;
+                  return {
+                    value: roleSlug,
+                    label: role?.name || roleSlug
+                  };
+                })
+              ]}
+            />
           </div>
 
           {/* Search */}

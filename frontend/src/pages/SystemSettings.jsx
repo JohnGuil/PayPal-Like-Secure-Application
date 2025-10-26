@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import Select from '../components/Select';
 
 export default function SystemSettings() {
   const { user } = useAuth();
@@ -166,21 +167,19 @@ export default function SystemSettings() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Timezone
-                </label>
-                <select
+                <Select
+                  label="Timezone"
                   value={settings.timezone}
                   onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="UTC">UTC</option>
-                  <option value="America/New_York">Eastern Time</option>
-                  <option value="America/Chicago">Central Time</option>
-                  <option value="America/Denver">Mountain Time</option>
-                  <option value="America/Los_Angeles">Pacific Time</option>
-                  <option value="Asia/Manila">Manila</option>
-                </select>
+                  options={[
+                    { value: 'UTC', label: 'UTC' },
+                    { value: 'America/New_York', label: 'Eastern Time' },
+                    { value: 'America/Chicago', label: 'Central Time' },
+                    { value: 'America/Denver', label: 'Mountain Time' },
+                    { value: 'America/Los_Angeles', label: 'Pacific Time' },
+                    { value: 'Asia/Manila', label: 'Manila' }
+                  ]}
+                />
               </div>
 
               <div className="flex items-center gap-3">
@@ -396,18 +395,16 @@ export default function SystemSettings() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Encryption
-                </label>
-                <select
+                <Select
+                  label="Encryption"
                   value={settings.smtp_encryption}
                   onChange={(e) => setSettings({ ...settings, smtp_encryption: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="tls">TLS</option>
-                  <option value="ssl">SSL</option>
-                  <option value="none">None</option>
-                </select>
+                  options={[
+                    { value: 'tls', label: 'TLS' },
+                    { value: 'ssl', label: 'SSL' },
+                    { value: 'none', label: 'None' }
+                  ]}
+                />
               </div>
 
               <div className="border-t border-gray-200 pt-6">

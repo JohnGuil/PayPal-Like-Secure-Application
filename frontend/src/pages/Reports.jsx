@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import analyticsService from '../services/analyticsService';
+import Select from '../components/Select';
 
 export default function Reports() {
   const { user } = useAuth();
@@ -404,56 +405,50 @@ export default function Reports() {
           {/* Additional Filters based on report type */}
           {reportType === 'user-activity' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Role
-              </label>
-              <select
+              <Select
+                label="Role"
                 value={filters.role_slug}
                 onChange={(e) => setFilters({ ...filters, role_slug: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">All Roles</option>
-                <option value="super-admin">Super Admin</option>
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="user">User</option>
-              </select>
+                options={[
+                  { value: '', label: 'All Roles' },
+                  { value: 'super-admin', label: 'Super Admin' },
+                  { value: 'admin', label: 'Admin' },
+                  { value: 'manager', label: 'Manager' },
+                  { value: 'user', label: 'User' }
+                ]}
+              />
             </div>
           )}
 
           {reportType === 'transaction-summary' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Transaction Type
-                </label>
-                <select
+                <Select
+                  label="Transaction Type"
                   value={filters.transaction_type}
                   onChange={(e) => setFilters({ ...filters, transaction_type: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Types</option>
-                  <option value="payment">Payment</option>
-                  <option value="refund">Refund</option>
-                  <option value="transfer">Transfer</option>
-                </select>
+                  options={[
+                    { value: '', label: 'All Types' },
+                    { value: 'payment', label: 'Payment' },
+                    { value: 'refund', label: 'Refund' },
+                    { value: 'transfer', label: 'Transfer' }
+                  ]}
+                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Status
-                </label>
-                <select
+                <Select
+                  label="Status"
                   value={filters.status}
                   onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Status</option>
-                  <option value="completed">Completed</option>
-                  <option value="pending">Pending</option>
-                  <option value="failed">Failed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+                  options={[
+                    { value: '', label: 'All Status' },
+                    { value: 'completed', label: 'Completed' },
+                    { value: 'pending', label: 'Pending' },
+                    { value: 'failed', label: 'Failed' },
+                    { value: 'cancelled', label: 'Cancelled' }
+                  ]}
+                />
               </div>
             </>
           )}
