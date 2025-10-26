@@ -76,7 +76,7 @@ class SettingsController extends Controller
         $validator = Validator::make($request->all(), [
             // Application settings
             'app_name' => 'sometimes|string|max:255',
-            'app_url' => 'sometimes|url|max:255',
+            'app_url' => 'sometimes|string|max:255', // Changed from 'url' to 'string' to allow localhost and .local
             'timezone' => 'sometimes|string|max:50',
             'maintenance_mode' => 'sometimes|boolean',
 
@@ -97,7 +97,7 @@ class SettingsController extends Controller
             'smtp_username' => 'sometimes|string|max:255',
             'smtp_password' => 'sometimes|string|max:255',
             'smtp_encryption' => 'sometimes|in:tls,ssl,none',
-            'from_email' => 'sometimes|email|max:255',
+            'from_email' => 'sometimes|string|max:255', // Changed from 'email' to 'string' to allow .local domains
             'from_name' => 'sometimes|string|max:255',
 
             // Notification settings

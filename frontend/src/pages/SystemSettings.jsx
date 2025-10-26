@@ -87,6 +87,9 @@ export default function SystemSettings() {
   const handleSave = async () => {
     setSaving(true);
 
+    // Log the data being sent for debugging
+    console.log('Saving settings:', settings);
+
     const savePromise = api.put('/settings', settings);
 
     try {
@@ -102,6 +105,18 @@ export default function SystemSettings() {
             return response.data.message || 'Settings saved successfully!';
           },
           error: (err) => {
+            // Log detailed validation errors
+            if (err.response?.data?.errors) {
+              console.error('Validation errors:', err.response.data.errors);
+            }
+            console.error('Full error:', err.response?.data);
+            
+            // Show specific validation errors if available
+            if (err.response?.data?.errors) {
+              const firstError = Object.values(err.response.data.errors)[0];
+              return Array.isArray(firstError) ? firstError[0] : firstError;
+            }
+            
             return err.response?.data?.message || 'Failed to save settings. Please try again.';
           },
         }
