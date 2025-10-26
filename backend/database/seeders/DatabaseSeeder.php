@@ -18,8 +18,10 @@ class DatabaseSeeder extends Seeder
             // Then create role-based demo accounts
             SampleUsersSeeder::class,
             
-            // Finally, seed test data
-            UserSeeder::class,
+            // System settings
+            SettingsSeeder::class,
+            
+            // Finally, seed test data (skip UserSeeder to avoid duplicates)
             TransactionSeeder::class,
             LoginLogSeeder::class,
         ]);

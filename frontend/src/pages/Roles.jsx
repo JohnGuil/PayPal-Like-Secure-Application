@@ -133,7 +133,6 @@ const Roles = () => {
         setError(errorMsg);
         toast.error(errorMsg);
       }
-      }
     } finally {
       setSubmitting(false);
     }
