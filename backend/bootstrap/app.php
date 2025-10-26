@@ -34,5 +34,33 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Return JSON responses for unauthenticated API requests
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Unauthenticated. Please provide a valid API token.',
+                    'error' => 'authentication_required'
+                ], 401);
+            }
+        });
+        
+        // Return JSON responses for all API errors  
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                // Determine status code
+                $status = 500;
+                if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+                    $status = $e->getStatusCode();
+                } elseif ($e instanceof \Illuminate\Validation\ValidationException) {
+                    $status = 422;
+                } elseif ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                    $status = 403;
+                }
+                
+                return response()->json([
+                    'message' => $e->getMessage() ?: 'Server error',
+                    'error' => class_basename($e)
+                ], $status);
+            }
+        });
     })->create();
