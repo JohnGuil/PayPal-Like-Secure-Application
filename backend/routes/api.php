@@ -153,4 +153,40 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [NotificationController::class, 'destroy']); // Delete notification
         Route::delete('/clear-read', [NotificationController::class, 'clearRead']); // Clear all read
     });
+
+    // Test email endpoint (for development only)
+    if (config('app.env') !== 'production') {
+        Route::post('/test-email', function (Request $request) {
+            $request->validate([
+                'email' => 'required|email',
+            ]);
+
+            try {
+                $user = \App\Models\User::first() ?? new \App\Models\User([
+                    'full_name' => 'Test User',
+                    'email' => $request->email,
+                    'balance' => 1000.00
+                ]);
+
+                \Illuminate\Support\Facades\Mail::to($request->email)
+                    ->send(new \App\Mail\WelcomeEmail($user));
+
+                return response()->json([
+                    'message' => 'Test email sent successfully!',
+                    'recipient' => $request->email,
+                    'mail_config' => [
+                        'host' => config('mail.mailers.smtp.host'),
+                        'port' => config('mail.mailers.smtp.port'),
+                        'encryption' => config('mail.mailers.smtp.encryption'),
+                        'from' => config('mail.from.address'),
+                    ]
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'message' => 'Failed to send email',
+                    'error' => $e->getMessage()
+                ], 500);
+            }
+        });
+    }
 });
