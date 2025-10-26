@@ -10,6 +10,18 @@ export default function SystemSettings() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('application');
 
+  // Helper function to safely parse integers
+  const safeParseInt = (value, fallback = 0) => {
+    const parsed = parseInt(value);
+    return isNaN(parsed) ? fallback : parsed;
+  };
+
+  // Helper function to safely parse floats
+  const safeParseFloat = (value, fallback = 0) => {
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? fallback : parsed;
+  };
+
   const [settings, setSettings] = useState({
     // Application Settings
     app_name: 'PayPal Clone',
@@ -220,8 +232,8 @@ export default function SystemSettings() {
                 </label>
                 <input
                   type="number"
-                  value={settings.session_timeout}
-                  onChange={(e) => setSettings({ ...settings, session_timeout: parseInt(e.target.value) })}
+                  value={settings.session_timeout || ''}
+                  onChange={(e) => setSettings({ ...settings, session_timeout: safeParseInt(e.target.value, 30) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="5"
                   max="120"
@@ -238,8 +250,8 @@ export default function SystemSettings() {
                     </label>
                     <input
                       type="number"
-                      value={settings.password_min_length}
-                      onChange={(e) => setSettings({ ...settings, password_min_length: parseInt(e.target.value) })}
+                      value={settings.password_min_length || ''}
+                      onChange={(e) => setSettings({ ...settings, password_min_length: safeParseInt(e.target.value, 8) })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       min="6"
                       max="32"
@@ -323,8 +335,8 @@ export default function SystemSettings() {
                     </label>
                     <input
                       type="number"
-                      value={settings.max_login_attempts}
-                      onChange={(e) => setSettings({ ...settings, max_login_attempts: parseInt(e.target.value) })}
+                      value={settings.max_login_attempts || ''}
+                      onChange={(e) => setSettings({ ...settings, max_login_attempts: safeParseInt(e.target.value, 5) })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       min="3"
                       max="10"
@@ -337,8 +349,8 @@ export default function SystemSettings() {
                     </label>
                     <input
                       type="number"
-                      value={settings.lockout_duration}
-                      onChange={(e) => setSettings({ ...settings, lockout_duration: parseInt(e.target.value) })}
+                      value={settings.lockout_duration || ''}
+                      onChange={(e) => setSettings({ ...settings, lockout_duration: safeParseInt(e.target.value, 15) })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       min="5"
                       max="60"
@@ -370,8 +382,8 @@ export default function SystemSettings() {
                 </label>
                 <input
                   type="number"
-                  value={settings.smtp_port}
-                  onChange={(e) => setSettings({ ...settings, smtp_port: parseInt(e.target.value) })}
+                  value={settings.smtp_port || ''}
+                  onChange={(e) => setSettings({ ...settings, smtp_port: safeParseInt(e.target.value, 587) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -482,8 +494,8 @@ export default function SystemSettings() {
                   </label>
                   <input
                     type="number"
-                    value={settings.large_transaction_amount}
-                    onChange={(e) => setSettings({ ...settings, large_transaction_amount: parseFloat(e.target.value) })}
+                    value={settings.large_transaction_amount || ''}
+                    onChange={(e) => setSettings({ ...settings, large_transaction_amount: safeParseFloat(e.target.value, 1000) })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     min="100"
                     step="100"
@@ -515,8 +527,8 @@ export default function SystemSettings() {
                 </label>
                 <input
                   type="number"
-                  value={settings.api_rate_limit}
-                  onChange={(e) => setSettings({ ...settings, api_rate_limit: parseInt(e.target.value) })}
+                  value={settings.api_rate_limit || ''}
+                  onChange={(e) => setSettings({ ...settings, api_rate_limit: safeParseInt(e.target.value, 60) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="10"
                   max="1000"
@@ -532,8 +544,8 @@ export default function SystemSettings() {
                 </label>
                 <input
                   type="number"
-                  value={settings.api_rate_limit_window}
-                  onChange={(e) => setSettings({ ...settings, api_rate_limit_window: parseInt(e.target.value) })}
+                  value={settings.api_rate_limit_window || ''}
+                  onChange={(e) => setSettings({ ...settings, api_rate_limit_window: safeParseInt(e.target.value, 60) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="1"
                   max="3600"
@@ -546,8 +558,8 @@ export default function SystemSettings() {
                 </label>
                 <input
                   type="number"
-                  value={settings.api_timeout}
-                  onChange={(e) => setSettings({ ...settings, api_timeout: parseInt(e.target.value) })}
+                  value={settings.api_timeout || ''}
+                  onChange={(e) => setSettings({ ...settings, api_timeout: safeParseInt(e.target.value, 30) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="5"
                   max="120"
