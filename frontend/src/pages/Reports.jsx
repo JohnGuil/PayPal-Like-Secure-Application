@@ -151,19 +151,21 @@ export default function Reports() {
         case 'security-events': {
           const response = await analyticsService.getSecurityAnalytics(dateRange);
           // Transform API response to match component structure
+          // Backend returns { status: "success", data: { summary, trends, etc } }
+          const apiData = response.data || response; // Handle both wrapped and unwrapped responses
           data = {
-            total_events: response.summary.failed_logins + response.summary.locked_accounts,
-            failed_logins: response.summary.failed_logins,
-            account_lockouts: response.summary.total_lockouts,
-            users_with_failed_logins: response.summary.users_with_failed_logins,
-            currently_locked: response.currently_locked_accounts?.length || 0,
-            top_failed_users: response.top_failed_users || [],
-            failure_reasons: response.failure_reasons || [],
-            recent_suspicious_activity: response.recent_suspicious_activity || [],
-            currently_locked_accounts: response.currently_locked_accounts || [],
+            total_events: apiData.summary.failed_logins + apiData.summary.locked_accounts,
+            failed_logins: apiData.summary.failed_logins,
+            account_lockouts: apiData.summary.total_lockouts,
+            users_with_failed_logins: apiData.summary.users_with_failed_logins,
+            currently_locked: apiData.currently_locked_accounts?.length || 0,
+            top_failed_users: apiData.top_failed_users || [],
+            failure_reasons: apiData.failure_reasons || [],
+            recent_suspicious_activity: apiData.recent_suspicious_activity || [],
+            currently_locked_accounts: apiData.currently_locked_accounts || [],
             trends: {
-              failed_logins: response.trends.failed_logins || [],
-              success_rate: response.trends.success_rate || []
+              failed_logins: apiData.trends.failed_logins || [],
+              success_rate: apiData.trends.success_rate || []
             }
           };
           break;
