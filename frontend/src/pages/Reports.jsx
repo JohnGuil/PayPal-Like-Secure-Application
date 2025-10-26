@@ -2,12 +2,15 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import analyticsService from '../services/analyticsService';
+import api from '../services/api';
 import Select from '../components/Select';
 
 export default function Reports() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [reportType, setReportType] = useState('user-activity');
+  const [exportMode, setExportMode] = useState('summary'); // 'summary' or 'detailed'
   
   // Set date range to last 7 days including today
   // Add 1 day to end_date to ensure we include all of today's data
@@ -184,7 +187,77 @@ export default function Reports() {
     }
   };
 
+  // Handle detailed (raw data) export
+  const handleDetailedExport = async (format) => {
+    setExportLoading(true);
+
+    try {
+      let endpoint = '';
+      let filters = {
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
+        format: format
+      };
+
+      // Determine which raw export endpoint to call based on report type
+      if (reportType === 'user-activity' || reportType === 'security-events') {
+        endpoint = '/reports/export/login-logs';
+        // Add filters if available
+        if (filters.status) {
+          filters.is_successful = filters.status === 'success';
+        }
+      } else if (reportType === 'transaction-summary' || reportType === 'revenue-report') {
+        endpoint = '/reports/export/transactions';
+        // Add transaction filters if available
+        if (filters.transaction_type) {
+          filters.type = filters.transaction_type;
+        }
+        if (filters.status) {
+          filters.status = filters.status;
+        }
+      }
+
+      const exportPromise = api.post(endpoint, filters, {
+        responseType: 'blob'
+      });
+
+      await toast.promise(
+        exportPromise,
+        {
+          loading: `Exporting detailed ${format.toUpperCase()} report...`,
+          success: 'Export ready for download!',
+          error: 'Failed to export report'
+        }
+      );
+
+      const response = await exportPromise;
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${reportType}-detailed-${dateRange.start_date}-to-${dateRange.end_date}.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error('Error exporting detailed report:', error);
+      toast.error(error.response?.data?.message || 'Failed to export detailed report');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   const handleExport = (format) => {
+    // If detailed mode is selected, use raw data export
+    if (exportMode === 'detailed') {
+      handleDetailedExport(format);
+      return;
+    }
+
+    // Otherwise, use summary export (existing logic)
     if (!reportData) return;
 
     const selectedReport = reportTypes.find(r => r.id === reportType);
@@ -456,24 +529,82 @@ export default function Reports() {
       {/* Report Preview */}
       {reportData && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Report Preview</h2>
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Report Preview</h2>
+              
+              {/* Export Mode Toggle */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-gray-700">Export Mode:</span>
+                <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+                  <button
+                    onClick={() => setExportMode('summary')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      exportMode === 'summary'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Summary
+                  </button>
+                  <button
+                    onClick={() => setExportMode('detailed')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      exportMode === 'detailed'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Detailed (Raw Data)
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Export Mode Description */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              {exportMode === 'summary' ? (
+                <p className="text-sm text-blue-800">
+                  <span className="font-semibold">Summary Mode:</span> Export aggregated statistics and summary data shown in the preview below.
+                </p>
+              ) : (
+                <p className="text-sm text-blue-800">
+                  <span className="font-semibold">Detailed Mode:</span> Export all raw records with complete details. This may take longer for large datasets.
+                </p>
+              )}
+            </div>
+
+            {/* Export Buttons */}
             <div className="flex gap-2">
               <button
                 onClick={() => handleExport('csv')}
-                className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                disabled={exportLoading}
+                className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
-                Export CSV
+                {exportLoading && exportMode === 'detailed' ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Exporting...
+                  </>
+                ) : (
+                  'Export CSV'
+                )}
               </button>
               <button
                 onClick={() => handleExport('json')}
-                className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
+                disabled={exportLoading}
+                className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Export JSON
               </button>
               <button
                 onClick={() => handleExport('pdf')}
-                className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                disabled={exportLoading || exportMode === 'detailed'}
+                className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title={exportMode === 'detailed' ? 'PDF export not available for detailed mode' : ''}
               >
                 Export PDF
               </button>
