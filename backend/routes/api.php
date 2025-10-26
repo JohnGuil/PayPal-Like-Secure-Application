@@ -83,6 +83,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('transactions')->group(function () {
         Route::get('/', [TransactionController::class, 'index']); // List transactions
         Route::get('/statistics', [TransactionController::class, 'statistics']); // Get statistics
+        Route::post('/preview-fee', [TransactionController::class, 'previewFee']); // Preview fee calculation
         Route::get('/{id}', [TransactionController::class, 'show']); // Show single transaction
         Route::post('/', [TransactionController::class, 'store']); // Create transaction
         Route::post('/{id}/refund', [TransactionController::class, 'refund']); // Refund transaction

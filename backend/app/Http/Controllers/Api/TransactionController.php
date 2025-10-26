@@ -9,6 +9,7 @@ use App\Http\Requests\RefundTransactionRequest;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\FeeCalculator;
 use App\Mail\TransactionSent;
 use App\Mail\TransactionReceived;
 use App\Mail\TransactionRefunded;
@@ -111,6 +112,43 @@ class TransactionController extends Controller
     }
 
     /**
+     * Preview transaction fees (calculate before creating transaction)
+     */
+    public function previewFee(Request $request)
+    {
+        $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'type' => ['required', 'in:payment,transfer,refund'],
+        ]);
+
+        $amount = $request->amount;
+        $type = $request->type;
+
+        // Calculate fees
+        $feeData = FeeCalculator::calculateFee($amount, $type);
+        $feeStructure = FeeCalculator::getFeeStructure($type);
+
+        // Calculate total cost to sender
+        $totalRequired = $type === 'payment' 
+            ? $amount + $feeData['fee']  // Sender pays amount + fee
+            : $amount;                    // No fee for transfers
+
+        return response()->json([
+            'amount' => (float) $amount,
+            'fee' => $feeData['fee'],
+            'net_amount' => $feeData['net_amount'],
+            'total_required' => (float) $totalRequired,
+            'fee_structure' => $feeStructure,
+            'breakdown' => [
+                'you_send' => (float) $amount,
+                'transaction_fee' => $feeData['fee'],
+                'total_deducted_from_you' => (float) $totalRequired,
+                'recipient_receives' => $type === 'payment' ? (float) $amount : $feeData['net_amount'],
+            ],
+        ]);
+    }
+
+    /**
      * Store a newly created transaction
      */
     public function store(StoreTransactionRequest $request)
@@ -127,36 +165,54 @@ class TransactionController extends Controller
             ], 422);
         }
 
+        // Calculate fees based on transaction type (PayPal model)
+        $feeData = FeeCalculator::calculateFee($request->amount, $request->type);
+        $fee = $feeData['fee'];
+        $netAmount = $feeData['net_amount'];
+
+        // Total amount sender needs (amount + fee for payments, just amount for transfers)
+        $totalRequired = $request->type === 'payment' 
+            ? $request->amount + $fee  // Sender pays the fee
+            : $request->amount;         // No fee for transfers
+
         // Check if sender has sufficient balance
-        if (!$request->user()->hasSufficientBalance($request->amount)) {
+        if (!$request->user()->hasSufficientBalance($totalRequired)) {
             return response()->json([
                 'message' => 'Insufficient balance',
                 'current_balance' => $request->user()->balance,
-                'required_amount' => $request->amount
+                'required_amount' => $totalRequired,
+                'breakdown' => [
+                    'amount' => $request->amount,
+                    'fee' => $fee,
+                    'total' => $totalRequired
+                ]
             ], 422);
         }
 
         try {
             // Use database transaction for atomicity
-            $transaction = DB::transaction(function () use ($request, $recipient) {
+            $transaction = DB::transaction(function () use ($request, $recipient, $fee, $netAmount, $totalRequired) {
                 // Create transaction record as pending
                 $transaction = Transaction::create([
                     'sender_id' => $request->user()->id,
                     'recipient_id' => $recipient->id,
                     'amount' => $request->amount,
+                    'fee' => $fee,
+                    'net_amount' => $netAmount,
                     'currency' => $request->input('currency', 'USD'),
                     'type' => $request->type,
                     'description' => $request->description,
                     'status' => 'pending',
                 ]);
 
-                // Deduct from sender
-                if (!$request->user()->deductBalance($request->amount)) {
+                // Deduct total (amount + fee) from sender
+                if (!$request->user()->deductBalance($totalRequired)) {
                     throw new \Exception('Failed to deduct balance from sender');
                 }
 
-                // Add to recipient
-                if (!$recipient->addBalance($request->amount)) {
+                // Add net amount to recipient (amount - fee for payments, full amount for transfers)
+                $recipientAmount = $request->type === 'payment' ? $request->amount : $netAmount;
+                if (!$recipient->addBalance($recipientAmount)) {
                     throw new \Exception('Failed to add balance to recipient');
                 }
 
