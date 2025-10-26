@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import Pagination from '../components/Pagination';
 
 export default function LoginLogs() {
   const { user } = useAuth();
@@ -9,23 +11,41 @@ export default function LoginLogs() {
   const [statistics, setStatistics] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
   // Permission check
   const canViewAll = user?.permissions?.some(p => p.slug === 'view-all-login-logs');
 
   useEffect(() => {
     fetchLogs();
     fetchStatistics();
+  }, [currentPage, perPage]);
+
+  // Load per page preference from localStorage on mount
+  useEffect(() => {
+    const savedPerPage = localStorage.getItem('login_logs_per_page');
+    if (savedPerPage) {
+      setPerPage(parseInt(savedPerPage));
+    }
   }, []);
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/login-logs');
+      const response = await api.get(`/login-logs?page=${currentPage}&per_page=${perPage}`);
       // Handle Laravel pagination structure
-      setLogs(response.data.data || response.data.logs || []);
+      setLogs(response.data.data || []);
+      setTotalPages(response.data.last_page || 1);
+      setTotalItems(response.data.total || 0);
+      setCurrentPage(response.data.current_page || 1);
     } catch (error) {
       console.error('Error fetching login logs:', error);
       setLogs([]);
+      toast.error('Failed to load login logs');
     } finally {
       setLoading(false);
     }
@@ -38,6 +58,18 @@ export default function LoginLogs() {
     } catch (error) {
       console.error('Error fetching statistics:', error);
     }
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePerPageChange = (newPerPage) => {
+    setPerPage(newPerPage);
+    setCurrentPage(1); // Reset to first page when changing page size
+    // Store in localStorage for persistence
+    localStorage.setItem('login_logs_per_page', newPerPage.toString());
   };
 
   const filteredLogs = logs.filter(log => {
@@ -233,6 +265,18 @@ export default function LoginLogs() {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination */}
+            {!loading && totalItems > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                perPage={perPage}
+                totalItems={totalItems}
+                onPageChange={handlePageChange}
+                onPerPageChange={handlePerPageChange}
+              />
+            )}
           </div>
         )}
       </div>

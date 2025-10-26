@@ -123,7 +123,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Reports (Permission checked in controller)
     Route::prefix('reports')->group(function () {
-        Route::post('/', [ReportController::class, 'generate']); // Generate report
+        Route::post('/', [ReportController::class, 'generate']); // Generate report summary
+        Route::post('/export/transactions', [ReportController::class, 'exportTransactions']); // Export raw transaction data
+        Route::post('/export/login-logs', [ReportController::class, 'exportLoginLogs']); // Export raw login log data
     });
 
     // Analytics (Permission checked in controller)

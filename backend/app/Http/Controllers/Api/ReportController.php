@@ -397,4 +397,161 @@ class ReportController extends Controller
             ->header('Content-Type', 'text/csv')
             ->header('Content-Disposition', 'attachment; filename="' . $reportType . '-' . date('Y-m-d') . '.csv"');
     }
+
+    /**
+     * Export raw transaction data
+     */
+    public function exportTransactions(Request $request)
+    {
+        // Check permission
+        if (!$request->user()->hasPermission('generate-reports')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'status' => 'sometimes|in:completed,pending,failed,cancelled',
+            'type' => 'sometimes|in:payment,refund,transfer',
+            'format' => 'sometimes|in:json,csv',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $query = Transaction::with(['sender:id,full_name,email', 'recipient:id,full_name,email'])
+            ->whereBetween('created_at', [$request->start_date, $request->end_date]);
+
+        // Apply filters
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('type')) {
+            $query->where('type', $request->type);
+        }
+
+        // Order by date descending
+        $transactions = $query->orderBy('created_at', 'desc')->get();
+
+        $format = $request->input('format', 'json');
+
+        if ($format === 'csv') {
+            return $this->exportTransactionsToCSV($transactions);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $transactions,
+            'count' => $transactions->count()
+        ]);
+    }
+
+    /**
+     * Export raw login log data
+     */
+    public function exportLoginLogs(Request $request)
+    {
+        // Check permission
+        if (!$request->user()->hasPermission('generate-reports')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'is_successful' => 'sometimes|boolean',
+            'user_id' => 'sometimes|exists:users,id',
+            'format' => 'sometimes|in:json,csv',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $query = LoginLog::with(['user:id,full_name,email'])
+            ->whereBetween('created_at', [$request->start_date, $request->end_date]);
+
+        // Apply filters
+        if ($request->has('is_successful')) {
+            $query->where('is_successful', $request->is_successful);
+        }
+
+        if ($request->has('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        // Order by date descending
+        $logs = $query->orderBy('created_at', 'desc')->get();
+
+        $format = $request->input('format', 'json');
+
+        if ($format === 'csv') {
+            return $this->exportLoginLogsToCSV($logs);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $logs,
+            'count' => $logs->count()
+        ]);
+    }
+
+    /**
+     * Export transactions to CSV
+     */
+    private function exportTransactionsToCSV($transactions)
+    {
+        $csvData = "ID,Date,Type,Sender,Sender Email,Recipient,Recipient Email,Amount,Fee,Status,Description,Reference Number\n";
+
+        foreach ($transactions as $transaction) {
+            $csvData .= sprintf(
+                "\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%.2f\",\"%.2f\",\"%s\",\"%s\",\"%s\"\n",
+                $transaction->id,
+                $transaction->created_at->format('Y-m-d H:i:s'),
+                $transaction->type,
+                $transaction->sender ? $transaction->sender->full_name : 'N/A',
+                $transaction->sender ? $transaction->sender->email : 'N/A',
+                $transaction->recipient ? $transaction->recipient->full_name : 'N/A',
+                $transaction->recipient ? $transaction->recipient->email : 'N/A',
+                $transaction->amount,
+                $transaction->fee ?? 0,
+                $transaction->status,
+                str_replace('"', '""', $transaction->description ?? ''),
+                $transaction->reference_number ?? ''
+            );
+        }
+
+        return response($csvData)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="transactions-raw-' . date('Y-m-d') . '.csv"');
+    }
+
+    /**
+     * Export login logs to CSV
+     */
+    private function exportLoginLogsToCSV($logs)
+    {
+        $csvData = "ID,Date,User,Email,IP Address,User Agent,Status,Failed Reason\n";
+
+        foreach ($logs as $log) {
+            $csvData .= sprintf(
+                "\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
+                $log->id,
+                $log->created_at->format('Y-m-d H:i:s'),
+                $log->user ? $log->user->full_name : 'Unknown',
+                $log->user ? $log->user->email : 'N/A',
+                $log->ip_address,
+                str_replace('"', '""', $log->user_agent ?? ''),
+                $log->is_successful ? 'Success' : 'Failed',
+                str_replace('"', '""', $log->failed_reason ?? '')
+            );
+        }
+
+        return response($csvData)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="login-logs-raw-' . date('Y-m-d') . '.csv"');
+    }
 }
+

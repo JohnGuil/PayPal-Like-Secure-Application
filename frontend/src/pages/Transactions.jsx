@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import Select from '../components/Select';
+import Pagination from '../components/Pagination';
 
 export default function Transactions() {
   const { user } = useAuth();
@@ -14,6 +16,12 @@ export default function Transactions() {
   const [filter, setFilter] = useState('all'); // all, sent, received
   const [searchTerm, setSearchTerm] = useState('');
   const [balance, setBalance] = useState(0);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -37,7 +45,7 @@ export default function Transactions() {
   useEffect(() => {
     fetchTransactions();
     fetchUserBalance();
-  }, []);
+  }, [currentPage, perPage]);
 
   const fetchUserBalance = async () => {
     try {
@@ -51,16 +59,40 @@ export default function Transactions() {
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/transactions');
+      const response = await api.get(`/transactions?page=${currentPage}&per_page=${perPage}`);
       // Handle Laravel pagination structure
-      setTransactions(response.data.data || response.data.transactions || []);
+      setTransactions(response.data.data || []);
+      setTotalPages(response.data.last_page || 1);
+      setTotalItems(response.data.total || 0);
+      setCurrentPage(response.data.current_page || 1);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       setTransactions([]);
+      toast.error('Failed to load transactions');
     } finally {
       setLoading(false);
     }
   };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePerPageChange = (newPerPage) => {
+    setPerPage(newPerPage);
+    setCurrentPage(1); // Reset to first page when changing page size
+    // Store in localStorage for persistence
+    localStorage.setItem('transactions_per_page', newPerPage.toString());
+  };
+
+  // Load per page preference from localStorage on mount
+  useEffect(() => {
+    const savedPerPage = localStorage.getItem('transactions_per_page');
+    if (savedPerPage) {
+      setPerPage(parseInt(savedPerPage));
+    }
+  }, []);
 
   // Helper function to safely format amount
   const formatAmount = (amount) => {
@@ -429,6 +461,18 @@ export default function Transactions() {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination */}
+            {!loading && totalItems > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                perPage={perPage}
+                totalItems={totalItems}
+                onPageChange={handlePageChange}
+                onPerPageChange={handlePerPageChange}
+              />
+            )}
           </div>
         )}
       </div>
