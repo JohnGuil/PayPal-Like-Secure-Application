@@ -71,6 +71,52 @@ class AuditLogController extends Controller
         $perPage = $request->input('per_page', 15);
         $logs = $query->paginate($perPage);
 
+        // Transform the data to extract role, permission, and user data from JSON fields
+        $logs->getCollection()->transform(function ($log) {
+            // Rename 'user' to 'admin_user' (the person who performed the action)
+            $log->admin_user = $log->user;
+            unset($log->user);
+
+            // Extract role from new_values or old_values (for role-related actions)
+            if (in_array($log->action, ['role_assigned', 'role_revoked'])) {
+                $roleData = $log->new_values['role'] ?? $log->old_values['role'] ?? null;
+                if ($roleData) {
+                    $log->role = (object)[
+                        'id' => $roleData['id'] ?? null,
+                        'name' => $roleData['name'] ?? null,
+                        'slug' => $roleData['slug'] ?? null,
+                    ];
+                }
+            }
+
+            // Extract permissions from new_values or old_values (for permission-related actions)
+            if (in_array($log->action, ['permissions_assigned', 'permissions_revoked'])) {
+                $permissionsData = $log->new_values['permissions'] ?? $log->old_values['permissions'] ?? [];
+                if (!empty($permissionsData)) {
+                    $firstPermission = is_array($permissionsData) ? $permissionsData[0] : $permissionsData;
+                    $log->permission = (object)[
+                        'id' => $firstPermission['id'] ?? null,
+                        'name' => $firstPermission['name'] ?? null,
+                        'slug' => $firstPermission['slug'] ?? null,
+                    ];
+                }
+            }
+
+            // For user-related actions, the resource_id points to the target user
+            if ($log->resource_type === 'User' && $log->resource_id) {
+                $targetUser = \App\Models\User::find($log->resource_id);
+                if ($targetUser) {
+                    $log->target_user = (object)[
+                        'id' => $targetUser->id,
+                        'name' => $targetUser->full_name,
+                        'email' => $targetUser->email,
+                    ];
+                }
+            }
+
+            return $log;
+        });
+
         return response()->json($logs);
     }
 
