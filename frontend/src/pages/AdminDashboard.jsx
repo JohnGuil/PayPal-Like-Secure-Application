@@ -468,16 +468,19 @@ export default function AdminDashboard() {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Transaction Overview</h2>
+          <p className="text-sm text-gray-500 mt-1">Breakdown of transaction statuses and performance</p>
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
               <p className="text-sm text-gray-600 mb-2">Pending Transactions</p>
               <p className="text-3xl font-bold text-yellow-600">{stats?.pending_transactions || 0}</p>
+              <p className="text-xs text-gray-500 mt-2">Awaiting processing</p>
             </div>
             <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
               <p className="text-sm text-gray-600 mb-2">Failed Transactions</p>
               <p className="text-3xl font-bold text-red-600">{stats?.failed_transactions || 0}</p>
+              <p className="text-xs text-gray-500 mt-2">All time failures</p>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
               <p className="text-sm text-gray-600 mb-2">Success Rate</p>
@@ -487,6 +490,30 @@ export default function AdminDashboard() {
                   : 100
                 }%
               </p>
+              <p className="text-xs text-gray-500 mt-2">
+                {stats?.total_transactions - (stats?.failed_transactions || 0)} of {stats?.total_transactions} successful
+              </p>
+            </div>
+          </div>
+          
+          {/* Additional Transaction Stats */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Today</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.transactions_today || 0}</p>
+                <p className="text-xs text-gray-600 mt-1">${(stats?.revenue_today || 0).toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">This Month</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.transactions_this_month || 0}</p>
+                <p className="text-xs text-gray-600 mt-1">${(stats?.revenue_this_month || 0).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">All Time</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.total_transactions || 0}</p>
+                <p className="text-xs text-gray-600 mt-1">${(stats?.total_revenue || 0).toLocaleString()}</p>
+              </div>
             </div>
           </div>
         </div>
