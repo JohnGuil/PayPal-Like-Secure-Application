@@ -197,7 +197,8 @@ class AuthController extends Controller
             "User logged in: {$user->email}",
             null,
             null,
-            $request
+            $request,
+            $user  // Pass explicit user for login events
         );
 
         // Create login notification

@@ -18,6 +18,7 @@ class AuditLogService
      * @param array|null $oldValues Previous state (for updates)
      * @param array|null $newValues New state (for updates/creates)
      * @param Request|null $request Request object for IP and user agent
+     * @param mixed $explicitUser Explicit user to use instead of Auth::user() (useful for login events)
      * @return AuditLog
      */
     public static function log(
@@ -27,9 +28,10 @@ class AuditLogService
         ?string $description = null,
         ?array $oldValues = null,
         ?array $newValues = null,
-        ?Request $request = null
+        ?Request $request = null,
+        mixed $explicitUser = null
     ): AuditLog {
-        $user = Auth::user();
+        $user = $explicitUser ?? Auth::user();
         $request = $request ?? request();
 
         return AuditLog::create([
