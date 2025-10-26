@@ -544,12 +544,12 @@ class AnalyticsController extends Controller
         // Get currently locked accounts
         $currentlyLockedAccounts = User::whereNotNull('locked_until')
             ->where('locked_until', '>', now())
-            ->select('id', 'name', 'email', 'locked_until', 'failed_login_attempts')
+            ->select('id', 'full_name', 'email', 'locked_until', 'failed_login_attempts')
             ->get()
             ->map(function ($user) {
                 return [
                     'user_id' => $user->id,
-                    'name' => $user->name,
+                    'name' => $user->full_name,
                     'email' => $user->email,
                     'locked_until' => $user->locked_until->toISOString(),
                     'minutes_remaining' => $user->locked_until->diffInMinutes(now()),
