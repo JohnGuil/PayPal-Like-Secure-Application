@@ -80,11 +80,11 @@ const Dashboard = () => {
             <div className="p-8 text-white">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <p className="text-blue-100 text-sm mb-1">Available Balance</p>
+                  <p className="text-white text-sm mb-1 opacity-90">Available Balance</p>
                   <h2 className="text-5xl font-bold">
                     ${parseFloat(userData?.balance || user?.balance || 0).toFixed(2)}
                   </h2>
-                  <p className="text-blue-100 text-sm mt-1">
+                  <p className="text-white text-sm mt-1 opacity-90">
                     {userData?.currency || user?.currency || 'USD'}
                   </p>
                 </div>

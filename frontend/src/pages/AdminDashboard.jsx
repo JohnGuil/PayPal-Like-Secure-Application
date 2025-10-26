@@ -36,13 +36,8 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
       
-      console.log('🔍 Fetching dashboard data...');
-      
       // Fetch real data from analytics API
       const dashboardData = await analyticsService.getDashboard();
-      
-      console.log('✅ Dashboard response:', dashboardData);
-      console.log('🔒 Security data:', dashboardData.system?.security);
       
       const statsData = {
         total_users: dashboardData.system?.total_users || 0,
@@ -73,8 +68,6 @@ export default function AdminDashboard() {
         }
       };
       
-      console.log('📊 Setting stats:', statsData);
-      console.log('🔒 Security stats specifically:', statsData.security);
       setStats(statsData);
 
       // Transform recent transactions to activity feed
@@ -92,14 +85,9 @@ export default function AdminDashboard() {
         color: transaction.type === 'refund' ? 'red' : 'green'
       }));
 
-      console.log('📜 Recent activities:', activities);
-
       setRecentActivity(activities);
-      
-      console.log('✅ Dashboard data loaded successfully');
     } catch (error) {
-      console.error('❌ Error fetching dashboard data:', error);
-      console.error('Error details:', error.response?.data || error.message);
+      console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -123,10 +111,8 @@ export default function AdminDashboard() {
       setUserGrowthData(userGrowth.data || []);
       setHourlyActivityData(hourlyActivity.data || []);
       setKpiComparison(kpi.data || null);
-      
-      console.log('✅ Chart data loaded successfully');
     } catch (error) {
-      console.error('❌ Error fetching chart data:', error);
+      console.error('Error fetching chart data:', error);
     } finally {
       setChartLoading(false);
     }
@@ -367,7 +353,7 @@ export default function AdminDashboard() {
           <div className="p-6">
             <div className="space-y-4">
               {/* Failed Logins (Last 24h) */}
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
                     <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -385,7 +371,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Currently Locked Accounts */}
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+              <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
                     <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -403,7 +389,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Suspicious Activity */}
-              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-200">
+              <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg border border-purple-200">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                     <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -421,7 +407,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* 2FA Adoption */}
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                     <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

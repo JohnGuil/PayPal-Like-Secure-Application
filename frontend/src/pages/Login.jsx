@@ -143,7 +143,7 @@ const Login = () => {
 
         {/* Sample Accounts Panel */}
         {showSampleAccounts && (
-          <div className="w-96 space-y-4">
+          <div className="w-full lg:w-96 space-y-4">
             <div className="card bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
