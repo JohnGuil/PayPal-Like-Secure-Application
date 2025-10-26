@@ -42,8 +42,9 @@ export default function AdminDashboard() {
       const dashboardData = await analyticsService.getDashboard();
       
       console.log('✅ Dashboard response:', dashboardData);
+      console.log('🔒 Security data:', dashboardData.system?.security);
       
-      setStats({
+      const statsData = {
         total_users: dashboardData.system?.total_users || 0,
         active_users: dashboardData.today?.active_users || 0,
         total_transactions: dashboardData.all_time?.transactions || 0,
@@ -70,7 +71,11 @@ export default function AdminDashboard() {
           suspicious_activity: dashboardData.system?.security?.suspicious_activity || 0,
           two_factor_percentage: dashboardData.system?.security?.two_factor_percentage || 0
         }
-      });
+      };
+      
+      console.log('📊 Setting stats:', statsData);
+      console.log('🔒 Security stats specifically:', statsData.security);
+      setStats(statsData);
 
       // Transform recent transactions to activity feed
       const activities = (dashboardData.recent_transactions || []).map((transaction, index) => ({
