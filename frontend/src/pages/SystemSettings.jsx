@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import Select from '../components/Select';
@@ -7,7 +8,6 @@ export default function SystemSettings() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [activeTab, setActiveTab] = useState('application');
 
   const [settings, setSettings] = useState({
@@ -64,33 +64,38 @@ export default function SystemSettings() {
         ...response.data
       }));
       
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching settings:', error);
-      setMessage({ type: 'error', text: 'Failed to load settings. Using defaults.' });
+      toast.error('Failed to load settings. Using defaults.');
+    } finally {
       setLoading(false);
     }
   };
 
   const handleSave = async () => {
     setSaving(true);
-    setMessage({ type: '', text: '' });
+
+    const savePromise = api.put('/settings', settings);
 
     try {
-      await api.put('/settings', settings);
-      
-      setMessage({ type: 'success', text: 'Settings saved successfully!' });
-      
-      // Optionally refresh settings from server
-      setTimeout(() => {
-        fetchSettings();
-      }, 1000);
+      await toast.promise(
+        savePromise,
+        {
+          loading: 'Saving settings...',
+          success: (response) => {
+            // Refresh settings from server after a short delay
+            setTimeout(() => {
+              fetchSettings();
+            }, 500);
+            return response.data.message || 'Settings saved successfully!';
+          },
+          error: (err) => {
+            return err.response?.data?.message || 'Failed to save settings. Please try again.';
+          },
+        }
+      );
     } catch (error) {
       console.error('Error saving settings:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to save settings. Please try again.' 
-      });
     } finally {
       setSaving(false);
     }
@@ -119,16 +124,6 @@ export default function SystemSettings() {
         <h1 className="text-2xl font-bold text-gray-900">System Settings</h1>
         <p className="text-sm text-gray-500 mt-1">Configure application settings and preferences</p>
       </div>
-
-      {/* Message */}
-      {message.text && (
-        <div className={`p-4 rounded-lg ${
-          message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 
-          'bg-red-50 text-red-800 border border-red-200'
-        }`}>
-          {message.text}
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -113,20 +114,25 @@ const Roles = () => {
       if (selectedRole) {
         // Update existing role
         await api.put(`/roles/${selectedRole.id}`, formData);
-        setError(null);
+        toast.success(`Role "${formData.name}" updated successfully!`);
       } else {
         // Create new role
         await api.post('/roles', formData);
-        setError(null);
+        toast.success(`Role "${formData.name}" created successfully!`);
       }
       
       setShowModal(false);
+      setError(null);
       fetchRoles();
     } catch (err) {
       if (err.response?.data?.errors) {
         setFormErrors(err.response.data.errors);
+        toast.error('Please fix the validation errors');
       } else {
-        setError(err.response?.data?.message || 'Failed to save role');
+        const errorMsg = err.response?.data?.message || 'Failed to save role';
+        setError(errorMsg);
+        toast.error(errorMsg);
+      }
       }
     } finally {
       setSubmitting(false);
@@ -143,14 +149,11 @@ const Roles = () => {
       setError(null);
       await api.delete(`/roles/${roleId}`);
       await fetchRoles();
-      
-      // Show success message briefly
-      const successMsg = `Role "${role?.name}" deleted successfully!`;
-      setError(null);
-      alert(successMsg);
+      toast.success(`Role "${role?.name}" deleted successfully!`);
     } catch (err) {
       const errorMsg = err.response?.data?.message || 'Failed to delete role';
       setError(errorMsg);
+      toast.error(errorMsg);
       
       // Scroll to top to show error
       window.scrollTo({ top: 0, behavior: 'smooth' });

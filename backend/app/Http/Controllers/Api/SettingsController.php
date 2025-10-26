@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -118,21 +119,61 @@ class SettingsController extends Controller
             ], 422);
         }
 
-        // Update each setting
+        $changedSettings = [];
+        $oldValues = [];
+        $newValues = [];
+
+        // Update each setting and track changes
         foreach ($request->all() as $key => $value) {
-            // Convert boolean to string for storage
+            $existingSetting = Setting::where('key', $key)->first();
+            
+            // Track old value for audit
+            if ($existingSetting) {
+                $oldValues[$key] = $existingSetting->value;
+            }
+
+            // Determine type
+            $type = 'string';
             if (is_bool($value)) {
-                $value = $value ? '1' : '0';
+                $type = 'boolean';
+                $value = $value ? 'true' : 'false';
+            } elseif (is_numeric($value) && !is_string($value)) {
+                $type = is_int($value) ? 'integer' : 'float';
+                $value = (string) $value;
             }
 
             Setting::updateOrCreate(
                 ['key' => $key],
-                ['value' => $value]
+                [
+                    'value' => $value,
+                    'type' => $type,
+                    'updated_by' => $request->user()->id
+                ]
+            );
+
+            $newValues[$key] = $value;
+            $changedSettings[] = $key;
+        }
+
+        // Clear settings cache
+        Setting::clearCache();
+
+        // Log the changes
+        if (!empty($changedSettings)) {
+            AuditLogService::log(
+                'settings_updated',
+                'Setting',
+                null,
+                'Updated system settings: ' . implode(', ', $changedSettings),
+                $oldValues,
+                $newValues,
+                $request
             );
         }
 
         return response()->json([
-            'message' => 'Settings updated successfully'
+            'message' => 'Settings updated successfully',
+            'updated_count' => count($changedSettings)
         ]);
     }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import analyticsService from '../services/analyticsService';
 import Select from '../components/Select';
@@ -6,7 +7,6 @@ import Select from '../components/Select';
 export default function Reports() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [reportType, setReportType] = useState('user-activity');
   
   // Set date range to last 7 days including today
@@ -56,7 +56,6 @@ export default function Reports() {
 
   const handleGenerateReport = async () => {
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
     try {
       let data;
@@ -176,13 +175,10 @@ export default function Reports() {
       }
 
       setReportData(data);
-      setMessage({ type: 'success', text: 'Report generated successfully from live data!' });
+      toast.success('Report generated successfully!');
     } catch (error) {
       console.error('Report generation error:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to generate report. Please try again.' 
-      });
+      toast.error(error.response?.data?.message || 'Failed to generate report. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -282,7 +278,7 @@ export default function Reports() {
       link.click();
       window.URL.revokeObjectURL(url);
       
-      setMessage({ type: 'success', text: 'Report exported successfully!' });
+      toast.success('CSV report exported successfully!');
       
     } else if (format === 'json') {
       const jsonContent = JSON.stringify(reportData, null, 2);
@@ -294,10 +290,10 @@ export default function Reports() {
       link.click();
       window.URL.revokeObjectURL(url);
       
-      setMessage({ type: 'success', text: 'Report exported successfully!' });
+      toast.success('JSON report exported successfully!');
       
     } else if (format === 'pdf') {
-      setMessage({ type: 'error', text: 'PDF export coming soon!' });
+      toast.error('PDF export coming soon!');
     }
   };
 
@@ -334,16 +330,6 @@ export default function Reports() {
         <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
         <p className="text-sm text-gray-500 mt-1">Generate and export comprehensive reports</p>
       </div>
-
-      {/* Message */}
-      {message.text && (
-        <div className={`p-4 rounded-lg ${
-          message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 
-          'bg-red-50 text-red-800 border border-red-200'
-        }`}>
-          {message.text}
-        </div>
-      )}
 
       {/* Report Type Selection */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
