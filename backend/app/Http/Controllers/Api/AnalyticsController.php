@@ -590,4 +590,281 @@ class AnalyticsController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Get chart data for revenue and volume trends (last 7 days)
+     */
+    public function revenueVolumeChart(Request $request)
+    {
+        $days = $request->input('days', 7); // Default to 7 days
+        $startDate = Carbon::now()->subDays($days);
+
+        // Daily transaction volume and revenue
+        $dailyData = Transaction::where('created_at', '>=', $startDate)
+            ->where('status', 'completed')
+            ->select(
+                DB::raw("TO_CHAR(created_at, 'YYYY-MM-DD') as date"),
+                DB::raw("SUM(amount) as volume"),
+                DB::raw("SUM(CASE WHEN type = 'payment' THEN fee ELSE 0 END) as revenue"),
+                DB::raw("COUNT(*) as transaction_count")
+            )
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        // Fill in missing dates with zeros
+        $chartData = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i)->format('Y-m-d');
+            $dayData = $dailyData->firstWhere('date', $date);
+            
+            $chartData[] = [
+                'date' => $date,
+                'label' => Carbon::parse($date)->format('M d'),
+                'volume' => $dayData ? (float) $dayData->volume : 0,
+                'revenue' => $dayData ? (float) $dayData->revenue : 0,
+                'transactions' => $dayData ? (int) $dayData->transaction_count : 0,
+            ];
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $chartData,
+            'period' => [
+                'start' => Carbon::now()->subDays($days)->format('Y-m-d'),
+                'end' => Carbon::now()->format('Y-m-d'),
+                'days' => $days,
+            ],
+        ]);
+    }
+
+    /**
+     * Get transaction type breakdown for pie chart
+     */
+    public function transactionTypeBreakdown(Request $request)
+    {
+        $days = $request->input('days', 30); // Default to 30 days
+        $startDate = Carbon::now()->subDays($days);
+
+        $breakdown = Transaction::where('created_at', '>=', $startDate)
+            ->where('status', 'completed')
+            ->select('type', DB::raw('COUNT(*) as count'), DB::raw('SUM(amount) as total'))
+            ->groupBy('type')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'type' => ucfirst($item->type),
+                    'count' => (int) $item->count,
+                    'amount' => (float) $item->total,
+                ];
+            });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $breakdown,
+            'period' => [
+                'start' => $startDate->format('Y-m-d'),
+                'end' => Carbon::now()->format('Y-m-d'),
+                'days' => $days,
+            ],
+        ]);
+    }
+
+    /**
+     * Get user growth chart data
+     */
+    public function userGrowthChart(Request $request)
+    {
+        $days = $request->input('days', 30); // Default to 30 days
+        $startDate = Carbon::now()->subDays($days);
+
+        // Daily new user registrations
+        $dailyUsers = User::where('created_at', '>=', $startDate)
+            ->select(
+                DB::raw("TO_CHAR(created_at, 'YYYY-MM-DD') as date"),
+                DB::raw("COUNT(*) as new_users")
+            )
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        // Calculate cumulative total
+        $totalUsers = User::where('created_at', '<', $startDate)->count();
+        
+        $chartData = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i)->format('Y-m-d');
+            $dayData = $dailyUsers->firstWhere('date', $date);
+            $newUsers = $dayData ? (int) $dayData->new_users : 0;
+            $totalUsers += $newUsers;
+            
+            $chartData[] = [
+                'date' => $date,
+                'label' => Carbon::parse($date)->format('M d'),
+                'new_users' => $newUsers,
+                'total_users' => $totalUsers,
+            ];
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $chartData,
+            'period' => [
+                'start' => Carbon::now()->subDays($days)->format('Y-m-d'),
+                'end' => Carbon::now()->format('Y-m-d'),
+                'days' => $days,
+            ],
+        ]);
+    }
+
+    /**
+     * Get hourly transaction activity (heatmap data)
+     */
+    public function hourlyActivity(Request $request)
+    {
+        $days = $request->input('days', 7); // Default to 7 days
+        $startDate = Carbon::now()->subDays($days);
+
+        $hourlyData = Transaction::where('created_at', '>=', $startDate)
+            ->where('status', 'completed')
+            ->select(
+                DB::raw("EXTRACT(HOUR FROM created_at) as hour"),
+                DB::raw("COUNT(*) as count"),
+                DB::raw("SUM(amount) as total")
+            )
+            ->groupBy('hour')
+            ->orderBy('hour')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'hour' => (int) $item->hour,
+                    'label' => sprintf('%02d:00', $item->hour),
+                    'transactions' => (int) $item->count,
+                    'volume' => (float) $item->total,
+                ];
+            });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $hourlyData,
+            'period' => [
+                'start' => $startDate->format('Y-m-d'),
+                'end' => Carbon::now()->format('Y-m-d'),
+                'days' => $days,
+            ],
+        ]);
+    }
+
+    /**
+     * Get KPI comparison data (current vs previous period)
+     */
+    public function kpiComparison(Request $request)
+    {
+        $period = $request->input('period', 'week'); // week, month, quarter
+        
+        $currentStart = match($period) {
+            'week' => Carbon::now()->startOfWeek(),
+            'month' => Carbon::now()->startOfMonth(),
+            'quarter' => Carbon::now()->startOfQuarter(),
+            default => Carbon::now()->startOfWeek(),
+        };
+
+        $currentEnd = Carbon::now();
+        $daysDiff = $currentStart->diffInDays($currentEnd);
+        
+        $previousStart = $currentStart->copy()->subDays($daysDiff);
+        $previousEnd = $currentStart->copy()->subSecond();
+
+        // Current period stats
+        $currentStats = $this->getPeriodStats($currentStart, $currentEnd);
+        
+        // Previous period stats
+        $previousStats = $this->getPeriodStats($previousStart, $previousEnd);
+
+        // Calculate changes
+        $comparison = [
+            'transactions' => [
+                'current' => $currentStats['transactions'],
+                'previous' => $previousStats['transactions'],
+                'change' => $this->calculatePercentageChange($previousStats['transactions'], $currentStats['transactions']),
+            ],
+            'volume' => [
+                'current' => $currentStats['volume'],
+                'previous' => $previousStats['volume'],
+                'change' => $this->calculatePercentageChange($previousStats['volume'], $currentStats['volume']),
+            ],
+            'revenue' => [
+                'current' => $currentStats['revenue'],
+                'previous' => $previousStats['revenue'],
+                'change' => $this->calculatePercentageChange($previousStats['revenue'], $currentStats['revenue']),
+            ],
+            'active_users' => [
+                'current' => $currentStats['active_users'],
+                'previous' => $previousStats['active_users'],
+                'change' => $this->calculatePercentageChange($previousStats['active_users'], $currentStats['active_users']),
+            ],
+            'avg_transaction' => [
+                'current' => $currentStats['avg_transaction'],
+                'previous' => $previousStats['avg_transaction'],
+                'change' => $this->calculatePercentageChange($previousStats['avg_transaction'], $currentStats['avg_transaction']),
+            ],
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $comparison,
+            'period' => [
+                'current' => [
+                    'start' => $currentStart->format('Y-m-d'),
+                    'end' => $currentEnd->format('Y-m-d'),
+                ],
+                'previous' => [
+                    'start' => $previousStart->format('Y-m-d'),
+                    'end' => $previousEnd->format('Y-m-d'),
+                ],
+                'type' => $period,
+            ],
+        ]);
+    }
+
+    /**
+     * Helper: Get stats for a specific period
+     */
+    private function getPeriodStats($startDate, $endDate)
+    {
+        $transactions = Transaction::whereBetween('created_at', [$startDate, $endDate])
+            ->where('status', 'completed');
+
+        $count = $transactions->count();
+        $volume = $transactions->sum('amount');
+        $revenue = Transaction::whereBetween('created_at', [$startDate, $endDate])
+            ->where('status', 'completed')
+            ->where('type', 'payment')
+            ->sum('fee');
+
+        $activeUsers = LoginLog::whereBetween('created_at', [$startDate, $endDate])
+            ->distinct('user_id')
+            ->count('user_id');
+
+        $avgTransaction = $count > 0 ? $volume / $count : 0;
+
+        return [
+            'transactions' => $count,
+            'volume' => (float) $volume,
+            'revenue' => (float) $revenue,
+            'active_users' => $activeUsers,
+            'avg_transaction' => (float) $avgTransaction,
+        ];
+    }
+
+    /**
+     * Helper: Calculate percentage change
+     */
+    private function calculatePercentageChange($previous, $current)
+    {
+        if ($previous == 0) {
+            return $current > 0 ? 100 : 0;
+        }
+        return round((($current - $previous) / $previous) * 100, 2);
+    }
 }

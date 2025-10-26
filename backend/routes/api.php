@@ -132,5 +132,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users', [AnalyticsController::class, 'userAnalytics']); // User analytics
         Route::get('/financial', [AnalyticsController::class, 'financialAnalytics']); // Financial analytics
         Route::get('/security', [AnalyticsController::class, 'securityAnalytics']); // Security analytics
+        
+        // Chart data endpoints
+        Route::get('/charts/revenue-volume', [AnalyticsController::class, 'revenueVolumeChart']); // Revenue vs Volume chart
+        Route::get('/charts/transaction-types', [AnalyticsController::class, 'transactionTypeBreakdown']); // Transaction types pie chart
+        Route::get('/charts/user-growth', [AnalyticsController::class, 'userGrowthChart']); // User growth chart
+        Route::get('/charts/hourly-activity', [AnalyticsController::class, 'hourlyActivity']); // Hourly activity heatmap
+        Route::get('/charts/kpi-comparison', [AnalyticsController::class, 'kpiComparison']); // KPI comparison
     });
 });

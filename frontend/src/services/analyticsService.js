@@ -53,6 +53,51 @@ const analyticsService = {
     const response = await api.get('/analytics/security', { params });
     return response.data;
   },
+
+  /**
+   * Get revenue vs volume chart data
+   * @param {number} days - Number of days to fetch (default: 7)
+   */
+  getRevenueVolumeChart: async (days = 7) => {
+    const response = await api.get('/analytics/charts/revenue-volume', { params: { days } });
+    return response.data;
+  },
+
+  /**
+   * Get transaction type breakdown for pie chart
+   * @param {number} days - Number of days to fetch (default: 30)
+   */
+  getTransactionTypeBreakdown: async (days = 30) => {
+    const response = await api.get('/analytics/charts/transaction-types', { params: { days } });
+    return response.data;
+  },
+
+  /**
+   * Get user growth chart data
+   * @param {number} days - Number of days to fetch (default: 30)
+   */
+  getUserGrowthChart: async (days = 30) => {
+    const response = await api.get('/analytics/charts/user-growth', { params: { days } });
+    return response.data;
+  },
+
+  /**
+   * Get hourly activity data
+   * @param {number} days - Number of days to fetch (default: 7)
+   */
+  getHourlyActivity: async (days = 7) => {
+    const response = await api.get('/analytics/charts/hourly-activity', { params: { days } });
+    return response.data;
+  },
+
+  /**
+   * Get KPI comparison data
+   * @param {string} period - Comparison period (week/month/quarter)
+   */
+  getKPIComparison: async (period = 'week') => {
+    const response = await api.get('/analytics/charts/kpi-comparison', { params: { period } });
+    return response.data;
+  },
 };
 
 export default analyticsService;

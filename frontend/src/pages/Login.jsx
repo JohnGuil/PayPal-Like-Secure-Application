@@ -14,10 +14,10 @@ const Login = () => {
   const [showSampleAccounts, setShowSampleAccounts] = useState(true);
 
   const sampleAccounts = [
-    { role: 'Super Admin', email: 'superadmin@paypal.test', password: 'SuperAdmin123!', color: 'bg-purple-500', icon: '👑' },
-    { role: 'Admin', email: 'admin@paypal.test', password: 'Admin123!', color: 'bg-red-500', icon: '🛡️' },
-    { role: 'Manager', email: 'manager@paypal.test', password: 'Manager123!', color: 'bg-blue-500', icon: '📊' },
-    { role: 'User', email: 'user@paypal.test', password: 'User123!', color: 'bg-green-500', icon: '👤' },
+    { role: 'Super Admin', email: 'superadmin@paypal.test', password: 'SuperAdmin123!', color: 'bg-purple-500', icon: '👑', balance: '$10,000', permissions: 'Full System Access' },
+    { role: 'Admin', email: 'admin@paypal.test', password: 'password123', color: 'bg-red-500', icon: '🛡️', balance: '$10,000', permissions: 'User & Transaction Management' },
+    { role: 'Manager', email: 'manager@paypal.test', password: 'Manager123!', color: 'bg-blue-500', icon: '📊', balance: '$3,000', permissions: 'View Reports & Analytics' },
+    { role: 'User', email: 'user@paypal.test', password: 'User123!', color: 'bg-green-500', icon: '👤', balance: '$1,000', permissions: 'Basic Transactions' },
   ];
 
   const fillCredentials = (email, password) => {
@@ -161,13 +161,13 @@ const Login = () => {
               </div>
 
               <p className="text-xs text-gray-600 mb-4">
-                Click any account below to auto-fill the login form for testing different roles.
+                Click any account to test different role permissions. Each role has specific access levels and capabilities.
               </p>
 
               <div className="space-y-3">
                 {sampleAccounts.map((account) => (
                   <button
-                    key={account.role}
+                    key={account.role + account.email}
                     onClick={() => fillCredentials(account.email, account.password)}
                     className="w-full text-left p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-400 hover:shadow-md transition-all group"
                   >
@@ -182,12 +182,20 @@ const Login = () => {
                             Click to use
                           </span>
                         </div>
-                        <p className="text-xs text-gray-600 truncate" title={account.email}>
+                        <p className="text-xs text-gray-600 truncate mb-1" title={account.email}>
                           {account.email}
                         </p>
-                        <p className="text-xs text-gray-500 font-mono mt-1">
-                          {account.password}
+                        <p className="text-xs text-gray-500 italic mb-1">
+                          {account.permissions}
                         </p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-gray-400 font-mono">
+                            {account.password}
+                          </p>
+                          <p className="text-xs font-semibold text-green-600">
+                            {account.balance}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </button>
