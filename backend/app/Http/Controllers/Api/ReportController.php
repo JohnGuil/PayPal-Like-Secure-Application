@@ -84,11 +84,11 @@ class ReportController extends Controller
                 $q->whereBetween('created_at', [$startDate, $endDate]);
             },
             'loginLogs as successful_logins' => function($q) use ($startDate, $endDate) {
-                $q->where('status', 'success')
+                $q->where('is_successful', true)
                   ->whereBetween('created_at', [$startDate, $endDate]);
             },
             'loginLogs as failed_logins' => function($q) use ($startDate, $endDate) {
-                $q->where('status', 'failed')
+                $q->where('is_successful', false)
                   ->whereBetween('created_at', [$startDate, $endDate]);
             }
         ])->get();
@@ -116,7 +116,7 @@ class ReportController extends Controller
             'most_active_users' => $mostActiveUsers->map(function($user) {
                 return [
                     'id' => $user->id,
-                    'name' => $user->name,
+                    'name' => $user->full_name,
                     'email' => $user->email,
                     'total_logins' => $user->total_logins,
                     'successful_logins' => $user->successful_logins,
@@ -253,19 +253,19 @@ class ReportController extends Controller
      */
     private function generateSecurityEventsReport($startDate, $endDate, $request)
     {
-        $query = LoginLog::whereBetween('created_at', [$startDate, $endDate]);
+        $query = LoginLog::with('user')->whereBetween('created_at', [$startDate, $endDate]);
 
         $logs = $query->get();
 
         // Failed login attempts
-        $failedLogins = $logs->where('status', 'failed');
+        $failedLogins = $logs->where('is_successful', false);
 
         // Group failed logins by user
         $failedByUser = $failedLogins->groupBy('user_id')->map(function($group) {
             $user = $group->first()->user;
             return [
                 'user_id' => $group->first()->user_id,
-                'user_name' => $user ? $user->name : 'Unknown',
+                'user_name' => $user ? $user->full_name : 'Unknown',
                 'user_email' => $user ? $user->email : 'Unknown',
                 'failed_attempts' => $group->count(),
             ];
@@ -287,8 +287,8 @@ class ReportController extends Controller
             return [
                 'date' => $group->first()->created_at->format('Y-m-d'),
                 'total_attempts' => $group->count(),
-                'successful' => $group->where('status', 'success')->count(),
-                'failed' => $group->where('status', 'failed')->count(),
+                'successful' => $group->where('is_successful', true)->count(),
+                'failed' => $group->where('is_successful', false)->count(),
             ];
         })->values();
 
@@ -313,7 +313,7 @@ class ReportController extends Controller
             ],
             'summary' => [
                 'total_login_attempts' => $logs->count(),
-                'successful_logins' => $logs->where('status', 'success')->count(),
+                'successful_logins' => $logs->where('is_successful', true)->count(),
                 'failed_logins' => $failedLogins->count(),
                 'unique_ips' => $logs->pluck('ip_address')->unique()->count(),
                 'suspicious_ips' => $suspiciousActivity->count(),
