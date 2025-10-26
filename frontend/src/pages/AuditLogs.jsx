@@ -77,12 +77,12 @@ export default function AuditLogs() {
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       return (
-        log.admin_user.name.toLowerCase().includes(search) ||
-        log.admin_user.email.toLowerCase().includes(search) ||
-        log.target_user.name.toLowerCase().includes(search) ||
-        log.target_user.email.toLowerCase().includes(search) ||
-        log.role.name.toLowerCase().includes(search) ||
-        log.permission.name.toLowerCase().includes(search)
+        log.admin_user?.name?.toLowerCase().includes(search) ||
+        log.admin_user?.email?.toLowerCase().includes(search) ||
+        log.target_user?.name?.toLowerCase().includes(search) ||
+        log.target_user?.email?.toLowerCase().includes(search) ||
+        log.role?.name?.toLowerCase().includes(search) ||
+        log.permission?.name?.toLowerCase().includes(search)
       );
     }
 
@@ -94,11 +94,11 @@ export default function AuditLogs() {
     const headers = ['Timestamp', 'Admin User', 'Action', 'Role', 'Permission', 'Target User'];
     const rows = filteredLogs.map(log => [
       new Date(log.created_at).toLocaleString(),
-      log.admin_user.name,
+      log.admin_user?.name || 'N/A',
       log.action,
-      log.role.name,
-      log.permission.name,
-      log.target_user.name
+      log.role?.name || 'N/A',
+      log.permission?.name || 'N/A',
+      log.target_user?.name || 'N/A'
     ]);
 
     const csvContent = [
@@ -294,8 +294,8 @@ export default function AuditLogs() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm">
-                        <div className="font-medium text-gray-900">{log.admin_user.name}</div>
-                        <div className="text-gray-500">{log.admin_user.email}</div>
+                        <div className="font-medium text-gray-900">{log.admin_user?.name || 'N/A'}</div>
+                        <div className="text-gray-500">{log.admin_user?.email || 'N/A'}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -307,17 +307,21 @@ export default function AuditLogs() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(log.role.slug)}`}>
-                        {log.role.name}
-                      </span>
+                      {log.role ? (
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(log.role.slug)}`}>
+                          {log.role.name}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-400">N/A</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {log.permission.name}
+                      {log.permission?.name || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm">
-                        <div className="font-medium text-gray-900">{log.target_user.name}</div>
-                        <div className="text-gray-500">{log.target_user.email}</div>
+                        <div className="font-medium text-gray-900">{log.target_user?.name || 'N/A'}</div>
+                        <div className="text-gray-500">{log.target_user?.email || 'N/A'}</div>
                       </div>
                     </td>
                   </tr>
