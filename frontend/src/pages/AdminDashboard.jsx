@@ -28,14 +28,17 @@ export default function AdminDashboard() {
         total_users: dashboardData.system?.total_users || 0,
         active_users: dashboardData.today?.active_users || 0,
         total_transactions: dashboardData.all_time?.transactions || 0,
-        total_revenue: dashboardData.all_time?.volume || 0,
+        total_volume: dashboardData.all_time?.volume || 0,
+        total_revenue: dashboardData.all_time?.revenue || 0,
         pending_transactions: dashboardData.system?.pending_transactions || 0,
         failed_transactions: dashboardData.system?.health?.failed_transactions || 0,
         new_users_today: 0, // Not yet tracked
         transactions_today: dashboardData.today?.transactions || 0,
         transactions_this_month: dashboardData.this_month?.transactions || 0,
-        revenue_today: dashboardData.today?.volume || 0,
-        revenue_this_month: dashboardData.this_month?.volume || 0,
+        volume_today: dashboardData.today?.volume || 0,
+        volume_this_month: dashboardData.this_month?.volume || 0,
+        revenue_today: dashboardData.today?.revenue || 0,
+        revenue_this_month: dashboardData.this_month?.revenue || 0,
         system_health: {
           database: dashboardData.system?.health?.database || 'unknown',
           api_response_time: dashboardData.system?.health?.db_response_time || 0,
@@ -213,14 +216,15 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Revenue</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">${(stats?.total_revenue || 0).toLocaleString()}</p>
+              <p className="text-sm text-gray-500">Platform Revenue</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">${(stats?.total_revenue || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
               <div className="mt-2 space-y-0.5">
                 {stats?.revenue_today > 0 && (
                   <p className="text-xs text-green-600">+${(stats?.revenue_today || 0).toFixed(2)} today</p>
                 )}
-                <p className="text-xs text-blue-600">${(stats?.revenue_this_month || 0).toLocaleString()} this month</p>
+                <p className="text-xs text-blue-600">${(stats?.revenue_this_month || 0).toFixed(2)} this month</p>
               </div>
+              <p className="text-xs text-gray-400 mt-1">Earned from transaction fees</p>
             </div>
             <div className="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center">
               <svg className="w-7 h-7 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -498,21 +502,53 @@ export default function AdminDashboard() {
           
           {/* Additional Transaction Stats */}
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Today</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.transactions_today || 0}</p>
-                <p className="text-xs text-gray-600 mt-1">${(stats?.revenue_today || 0).toFixed(2)}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Today</p>
+                <div className="space-y-1">
+                  <p className="text-2xl font-bold text-gray-900">{stats?.transactions_today || 0}</p>
+                  <p className="text-xs text-gray-600">transactions</p>
+                  <div className="pt-2 border-t border-gray-100 mt-2">
+                    <p className="text-sm font-semibold text-blue-600">${(stats?.volume_today || 0).toFixed(2)}</p>
+                    <p className="text-xs text-gray-500">Volume</p>
+                  </div>
+                  <div className="pt-1">
+                    <p className="text-sm font-semibold text-green-600">${(stats?.revenue_today || 0).toFixed(2)}</p>
+                    <p className="text-xs text-gray-500">Revenue (Fees)</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">This Month</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.transactions_this_month || 0}</p>
-                <p className="text-xs text-gray-600 mt-1">${(stats?.revenue_this_month || 0).toLocaleString()}</p>
+              
+              <div className="text-center">
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">This Month</p>
+                <div className="space-y-1">
+                  <p className="text-2xl font-bold text-gray-900">{stats?.transactions_this_month || 0}</p>
+                  <p className="text-xs text-gray-600">transactions</p>
+                  <div className="pt-2 border-t border-gray-100 mt-2">
+                    <p className="text-sm font-semibold text-blue-600">${(stats?.volume_this_month || 0).toLocaleString()}</p>
+                    <p className="text-xs text-gray-500">Volume</p>
+                  </div>
+                  <div className="pt-1">
+                    <p className="text-sm font-semibold text-green-600">${(stats?.revenue_this_month || 0).toFixed(2)}</p>
+                    <p className="text-xs text-gray-500">Revenue (Fees)</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">All Time</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.total_transactions || 0}</p>
-                <p className="text-xs text-gray-600 mt-1">${(stats?.total_revenue || 0).toLocaleString()}</p>
+              
+              <div className="text-center">
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">All Time</p>
+                <div className="space-y-1">
+                  <p className="text-2xl font-bold text-gray-900">{stats?.total_transactions || 0}</p>
+                  <p className="text-xs text-gray-600">transactions</p>
+                  <div className="pt-2 border-t border-gray-100 mt-2">
+                    <p className="text-sm font-semibold text-blue-600">${(stats?.total_volume || 0).toLocaleString()}</p>
+                    <p className="text-xs text-gray-500">Volume</p>
+                  </div>
+                  <div className="pt-1">
+                    <p className="text-sm font-semibold text-green-600">${(stats?.total_revenue || 0).toFixed(2)}</p>
+                    <p className="text-xs text-gray-500">Revenue (Fees)</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

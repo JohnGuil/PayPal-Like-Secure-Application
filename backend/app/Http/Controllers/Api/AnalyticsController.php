@@ -318,18 +318,35 @@ class AnalyticsController extends Controller
         $todayVolume = Transaction::whereDate('created_at', $today)
             ->where('status', 'completed')
             ->sum('amount');
+        
+        // Today's revenue (platform earnings from fees)
+        $todayRevenue = Transaction::whereDate('created_at', $today)
+            ->where('status', 'completed')
+            ->whereIn('type', ['payment']) // Only payments generate fees
+            ->sum('fee');
 
         // Yesterday's stats for comparison
         $yesterdayTransactions = Transaction::whereDate('created_at', $yesterday)->count();
         $yesterdayVolume = Transaction::whereDate('created_at', $yesterday)
             ->where('status', 'completed')
             ->sum('amount');
+        
+        $yesterdayRevenue = Transaction::whereDate('created_at', $yesterday)
+            ->where('status', 'completed')
+            ->whereIn('type', ['payment'])
+            ->sum('fee');
 
         // Month stats
         $monthTransactions = Transaction::whereDate('created_at', '>=', $thisMonth)->count();
         $monthVolume = Transaction::whereDate('created_at', '>=', $thisMonth)
             ->where('status', 'completed')
             ->sum('amount');
+        
+        // Month revenue (platform earnings)
+        $monthRevenue = Transaction::whereDate('created_at', '>=', $thisMonth)
+            ->where('status', 'completed')
+            ->whereIn('type', ['payment'])
+            ->sum('fee');
 
         // Calculate growth
         $transactionGrowth = $yesterdayTransactions > 0 
@@ -337,6 +354,9 @@ class AnalyticsController extends Controller
             : 0;
         $volumeGrowth = $yesterdayVolume > 0 
             ? (($todayVolume - $yesterdayVolume) / $yesterdayVolume) * 100 
+            : 0;
+        $revenueGrowth = $yesterdayRevenue > 0
+            ? (($todayRevenue - $yesterdayRevenue) / $yesterdayRevenue) * 100
             : 0;
 
         // Active users today
@@ -391,24 +411,33 @@ class AnalyticsController extends Controller
         // All-time totals
         $totalTransactions = Transaction::count();
         $totalVolume = Transaction::where('status', 'completed')->sum('amount');
+        
+        // All-time revenue (platform earnings from fees)
+        $totalRevenue = Transaction::where('status', 'completed')
+            ->whereIn('type', ['payment'])
+            ->sum('fee');
 
         return response()->json([
             'today' => [
                 'transactions' => $todayTransactions,
                 'volume' => (float) $todayVolume,
+                'revenue' => (float) $todayRevenue,
                 'active_users' => $activeUsersToday,
             ],
             'growth' => [
                 'transactions' => round($transactionGrowth, 2),
                 'volume' => round($volumeGrowth, 2),
+                'revenue' => round($revenueGrowth, 2),
             ],
             'this_month' => [
                 'transactions' => $monthTransactions,
                 'volume' => (float) $monthVolume,
+                'revenue' => (float) $monthRevenue,
             ],
             'all_time' => [
                 'transactions' => $totalTransactions,
                 'volume' => (float) $totalVolume,
+                'revenue' => (float) $totalRevenue,
             ],
             'recent_transactions' => $recentTransactions,
             'system' => [

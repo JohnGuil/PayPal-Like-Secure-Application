@@ -18,6 +18,8 @@ class Transaction extends Model
         'sender_id',
         'recipient_id',
         'amount',
+        'fee',
+        'net_amount',
         'currency',
         'type',
         'status',
@@ -34,6 +36,8 @@ class Transaction extends Model
      */
     protected $casts = [
         'amount' => 'float',
+        'fee' => 'float',
+        'net_amount' => 'float',
         'is_refunded' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
