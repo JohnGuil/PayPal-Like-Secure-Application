@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-paypal_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -32,7 +32,7 @@ services:
       - ./backend:/var/www
       - ./backend/vendor:/var/www/vendor
     ports:
-      - "8001:8000"
+      - "8000:8000"
     environment:
       DB_CONNECTION: pgsql
       DB_HOST: db
@@ -66,9 +66,9 @@ services:
       - ./frontend:/app
       - /app/node_modules
     ports:
-      - "3001:3000"
+      - "3000:3000"
     environment:
-      - VITE_API_URL=http://localhost:8001
+      - VITE_API_URL=http://localhost:8000
     depends_on:
       - app
     networks:

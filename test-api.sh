@@ -9,6 +9,12 @@ echo "API Testing Script"
 echo "=================================="
 echo ""
 
+#!/bin/bash
+
+# API Testing Script for PayPal-Like Secure Application
+# Base URL for API requests
+BASE_URL="http://localhost:8000/api"
+
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'

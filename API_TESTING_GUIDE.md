@@ -5,8 +5,8 @@ This guide shows you how to manually test all API endpoints.
 ## Prerequisites
 
 - Application is running: `docker compose up`
-- Backend is accessible at: `http://localhost:8001`
-- Frontend is accessible at: `http://localhost:3001`
+- Backend is accessible at: `http://localhost:8000`
+- Frontend is accessible at: `http://localhost:3000`
 
 ## Method 1: Using the Test Script (Automated)
 
@@ -29,7 +29,7 @@ This will test all endpoints automatically and show you the results.
 ### 1. Register a New User
 
 ```bash
-curl -X POST http://localhost:8001/api/register \
+curl -X POST http://localhost:8000/api/register \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{
@@ -58,7 +58,7 @@ curl -X POST http://localhost:8001/api/register \
 ### 2. Login
 
 ```bash
-curl -X POST http://localhost:8001/api/login \
+curl -X POST http://localhost:8000/api/login \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{
@@ -90,7 +90,7 @@ curl -X POST http://localhost:8001/api/login \
 Replace `YOUR_TOKEN` with the token from login:
 
 ```bash
-curl -X GET http://localhost:8001/api/user \
+curl -X GET http://localhost:8000/api/user \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN"
@@ -117,7 +117,7 @@ curl -X GET http://localhost:8001/api/user \
 ### 4. Setup 2FA (Protected Route)
 
 ```bash
-curl -X POST http://localhost:8001/api/2fa/setup \
+curl -X POST http://localhost:8000/api/2fa/setup \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN"
@@ -139,7 +139,7 @@ curl -X POST http://localhost:8001/api/2fa/setup \
 After scanning QR code, get the 6-digit code from your authenticator app:
 
 ```bash
-curl -X POST http://localhost:8001/api/2fa/verify \
+curl -X POST http://localhost:8000/api/2fa/verify \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -161,7 +161,7 @@ curl -X POST http://localhost:8001/api/2fa/verify \
 ### 6. Disable 2FA (Protected Route)
 
 ```bash
-curl -X POST http://localhost:8001/api/2fa/disable \
+curl -X POST http://localhost:8000/api/2fa/disable \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -183,7 +183,7 @@ curl -X POST http://localhost:8001/api/2fa/disable \
 ### 7. Logout (Protected Route)
 
 ```bash
-curl -X POST http://localhost:8001/api/logout \
+curl -X POST http://localhost:8000/api/logout \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN"
@@ -202,7 +202,7 @@ curl -X POST http://localhost:8001/api/logout \
 
 **Step 1: Login with credentials**
 ```bash
-curl -X POST http://localhost:8001/api/login \
+curl -X POST http://localhost:8000/api/login \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{
@@ -222,7 +222,7 @@ curl -X POST http://localhost:8001/api/login \
 
 **Step 2: Verify 2FA code**
 ```bash
-curl -X POST http://localhost:8001/api/2fa/verify-login \
+curl -X POST http://localhost:8000/api/2fa/verify-login \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{
@@ -253,7 +253,7 @@ curl -X POST http://localhost:8001/api/2fa/verify-login \
 2. **Import** the following collection:
    - Create new request
    - Set method (POST/GET)
-   - Set URL: `http://localhost:8001/api/[endpoint]`
+   - Set URL: `http://localhost:8000/api/[endpoint]`
    - Add headers:
      - `Content-Type: application/json`
      - `Accept: application/json`
@@ -264,7 +264,7 @@ curl -X POST http://localhost:8001/api/2fa/verify-login \
 
 ## Method 4: Using the Frontend (Complete E2E Test)
 
-1. **Open browser**: http://localhost:3001
+1. **Open browser**: http://localhost:3000
 2. **Register**: Create a new account
 3. **Login**: Sign in with credentials
 4. **Dashboard**: View your account info
@@ -280,10 +280,10 @@ Test if backend is running:
 
 ```bash
 # Simple ping test
-curl http://localhost:8001/api
+curl http://localhost:8000/api
 
 # Or check with browser
-open http://localhost:8001/api
+open http://localhost:8000/api
 ```
 
 ---
@@ -327,7 +327,7 @@ docker compose logs db
 **Problem**: CORS policy errors when testing from different origin
 
 **Solution**: Already configured in `backend/config/cors.php`
-- Allowed origins: localhost:3000, localhost:3001
+- Allowed origins: localhost:3000, localhost:3000
 - If testing from different port, add it to the config
 
 ---

@@ -6,7 +6,7 @@ Get the PayPal-like secure application running in **5 minutes**!
 
 - ✅ Docker Desktop installed and running
 - ✅ At least 4GB RAM available  
-- ✅ Ports 3001, 8001, and 5433 available
+- ✅ Ports 3001, 8001, and 5432 available
 
 ## Installation Steps
 
@@ -37,12 +37,12 @@ docker compose up --build
 
 **⏱️ Wait 3-5 minutes** for the first build. You should see:
 - ✓ Database is ready
-- ✓ Backend running on http://localhost:8001
-- ✓ Frontend running on http://localhost:3001
+- ✓ Backend running on http://localhost:8000
+- ✓ Frontend running on http://localhost:3000
 
 ### 4️⃣ Access Application
 
-Open your browser: **http://localhost:3001**
+Open your browser: **http://localhost:3000**
 
 ---
 
@@ -142,7 +142,7 @@ Click any demo account card on the login page to auto-fill credentials:
 ### Test Authentication
 ```bash
 # Register a new user
-curl -X POST http://localhost:8001/api/register \
+curl -X POST http://localhost:8000/api/register \
   -H "Content-Type: application/json" \
   -d '{
     "full_name": "Test User",
@@ -153,7 +153,7 @@ curl -X POST http://localhost:8001/api/register \
   }'
 
 # Login
-curl -X POST http://localhost:8001/api/login \
+curl -X POST http://localhost:8000/api/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -232,7 +232,7 @@ docker system prune -a
 ### Can't Access Frontend
 1. Check Docker containers are running: `docker ps`
 2. Check frontend logs: `docker logs paypal_frontend`
-3. Try http://localhost:3001 in incognito mode
+3. Try http://localhost:3000 in incognito mode
 
 ### API Errors
 1. Check backend logs: `docker logs paypal_backend`
@@ -260,10 +260,10 @@ Now that you're up and running:
 
 | Resource | URL |
 |----------|-----|
-| Frontend | http://localhost:3001 |
-| Backend API | http://localhost:8001 |
-| Database | localhost:5433 |
-| API Docs | http://localhost:8001/api/documentation |
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000 |
+| Database | localhost:5432 |
+| API Docs | http://localhost:8000/api/documentation |
 
 | Action | Command |
 |--------|---------|

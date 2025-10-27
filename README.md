@@ -129,7 +129,7 @@ This project implements a comprehensive secure application system similar to Pay
 ### Prerequisites
 - Docker Desktop installed and running
 - At least 4GB RAM available
-- Ports 3001, 8001, and 5433 available
+- Ports 3001, 8001, and 5432 available
 
 ### Installation (5 minutes)
 
@@ -158,8 +158,8 @@ This project implements a comprehensive secure application system similar to Pay
    Wait 3-5 minutes for containers to build and start.
 
 4. **Access the application**
-   - Frontend: http://localhost:3001
-   - Backend API: http://localhost:8001
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8000
 
 5. **Login with demo account**
    - See [Demo Accounts](#demo-accounts) section below
@@ -391,7 +391,7 @@ chmod +x test-api.sh
 1. **Test Authentication**
    ```bash
    # Register
-   curl -X POST http://localhost:8001/api/register \
+   curl -X POST http://localhost:8000/api/register \
      -H "Content-Type: application/json" \
      -d '{
        "full_name": "Test User",
@@ -402,7 +402,7 @@ chmod +x test-api.sh
      }'
    
    # Login
-   curl -X POST http://localhost:8001/api/login \
+   curl -X POST http://localhost:8000/api/login \
      -H "Content-Type: application/json" \
      -d '{
        "email": "test@example.com",
@@ -413,7 +413,7 @@ chmod +x test-api.sh
 2. **Test Protected Routes**
    ```bash
    # Get user info (replace TOKEN)
-   curl -X GET http://localhost:8001/api/user \
+   curl -X GET http://localhost:8000/api/user \
      -H "Authorization: Bearer TOKEN"
    ```
 
@@ -435,7 +435,7 @@ chmod +x test-api.sh
 # Check ports
 lsof -i :3001
 lsof -i :8001
-lsof -i :5433
+lsof -i :5432
 
 # Kill processes
 kill -9 PID
