@@ -11,6 +11,11 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Add a method to get full URL (for CSRF cookie endpoint)
+api.getFullUrl = (path) => {
+  return `${API_URL}${path}`;
+};
+
 // Request interceptor to add token to requests
 api.interceptors.request.use(
   (config) => {
