@@ -17,6 +17,8 @@ A full-stack web application demonstrating secure user authentication, role-base
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
 - [Contributors](#contributors)
+- [License](#license)
+- [Author & Copyright](#author--copyright)
 
 ## 🎯 Project Overview
 
@@ -523,7 +525,37 @@ docker exec -it paypal_backend php artisan cache:clear
 
 ## 📝 License
 
-This project is created for educational purposes as part of the IAS2 (Information Assurance and Security 2) course at Technological University of Asia.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for full details.
+
+**Educational Purpose:** This project was created for the IAS2 (Information Assurance and Security 2) course at Technological University of Asia.
+
+**Copyright Notice:** © 2025 John Kelly Guillermo. All Rights Reserved.
+
+For detailed copyright and attribution information, see [COPYRIGHT.md](COPYRIGHT.md).
+
+---
+
+## 👨‍💻 Author & Copyright
+
+**© 2025 John Kelly Guillermo. All Rights Reserved.**
+
+This application was designed, developed, and implemented by:
+
+**John Kelly Guillermo**  
+Full Stack Developer  
+Technological University of Asia  
+IAS2 Course Project
+
+[![GitHub](https://img.shields.io/badge/GitHub-JohnGuil-181717?style=flat&logo=github)](https://github.com/JohnGuil)  
+[![Repository](https://img.shields.io/badge/Repository-PayPal--Like--Secure--Application-blue?style=flat&logo=github)](https://github.com/JohnGuil/PayPal-Like-Secure-Application)
+
+**Project Repository:** [https://github.com/JohnGuil/PayPal-Like-Secure-Application](https://github.com/JohnGuil/PayPal-Like-Secure-Application)
+
+### Credits
+- **Original Creator:** John Kelly Guillermo
+- **Course:** Information Assurance and Security 2 (IAS2)
+- **Institution:** Technological University of Asia
+- **Year:** 2025
 
 ---
 
