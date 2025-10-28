@@ -4,21 +4,22 @@ A full-stack web application demonstrating secure user authentication, role-base
 
 ## 📋 Table of Contents
 
-- [Project Overview](#project-overview)
-- [Features](#features)
-- [Technology Stack](#technology-stack)
-- [Quick Start](#quick-start)
-- [Screenshots](#screenshots)
-- [Demo Accounts](#demo-accounts)
-- [Project Structure](#project-structure)
-- [API Endpoints](#api-endpoints)
-- [Security Features](#security-features)
-- [Deployment](#deployment)
-- [Testing](#testing)
-- [Troubleshooting](#troubleshooting)
-- [Contributors](#contributors)
-- [License](#license)
-- [Author & Copyright](#author--copyright)
+- [🎯 Project Overview](#-project-overview)
+- [✨ Features](#-features)
+- [🛠 Technology Stack](#-technology-stack)
+- [🚀 Quick Start](#-quick-start)
+- [📸 Screenshots](#-screenshots)
+- [👥 Demo Accounts](#-demo-accounts)
+- [📁 Project Structure](#-project-structure)
+- [🔌 API Endpoints](#-api-endpoints)
+- [🔒 Security Features](#-security-features)
+- [🚢 Deployment](#-deployment)
+- [🧪 Testing](#-testing)
+- [🔧 Troubleshooting](#-troubleshooting)
+- [📚 Additional Documentation](#-additional-documentation)
+- [👨‍💻 Contributors](#-contributors)
+- [📝 License](#-license)
+- [👨‍💻 Author & Copyright](#-author--copyright)
 
 ## 🎯 Project Overview
 
