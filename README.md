@@ -130,7 +130,7 @@ This project implements a comprehensive secure application system similar to Pay
 ### Prerequisites
 - Docker Desktop installed and running
 - At least 4GB RAM available
-- Ports 3001, 8001, and 5432 available
+- Ports 3000, 8000, and 5432 available
 
 ### Installation (5 minutes)
 
@@ -193,36 +193,6 @@ Enable 2FA with QR code scanning for enhanced account security using TOTP (Time-
 Secure login with 6-digit verification code after 2FA is enabled.
 
 ![2FA Login](screenshots/2fa-login.png)
-
----
-
-**📝 How to Add Screenshots:**
-
-1. **Take screenshots** of each page:
-   - Registration: `http://localhost:3000/register`
-   - Login: `http://localhost:3000/login`
-   - Dashboard: `http://localhost:3000/dashboard`
-   - 2FA Setup: `http://localhost:3000/profile` (Enable 2FA section)
-   - 2FA Login: `http://localhost:3000/login` (after enabling 2FA)
-
-2. **Save screenshots** in the `screenshots/` directory:
-   ```
-   screenshots/
-   ├── registration.png
-   ├── login.png
-   ├── dashboard.png
-   ├── 2fa-setup.png
-   └── 2fa-login.png
-   ```
-
-3. **Commit and push** to GitHub:
-   ```bash
-   git add screenshots/
-   git commit -m "docs: Add application screenshots"
-   git push origin main
-   ```
-
-The images will automatically display in the README once pushed to GitHub!
 
 ## �👥 Demo Accounts
 
@@ -491,8 +461,8 @@ chmod +x test-api.sh
 #### Port Already in Use
 ```bash
 # Check ports
-lsof -i :3001
-lsof -i :8001
+lsof -i :3000
+lsof -i :8000
 lsof -i :5432
 
 # Kill processes
