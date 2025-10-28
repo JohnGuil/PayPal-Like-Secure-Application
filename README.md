@@ -8,6 +8,7 @@ A full-stack web application demonstrating secure user authentication, role-base
 - [Features](#features)
 - [Technology Stack](#technology-stack)
 - [Quick Start](#quick-start)
+- [Screenshots](#screenshots)
 - [Demo Accounts](#demo-accounts)
 - [Project Structure](#project-structure)
 - [API Endpoints](#api-endpoints)
@@ -166,7 +167,64 @@ This project implements a comprehensive secure application system similar to Pay
 
 That's it! 🎉
 
-## 👥 Demo Accounts
+## � Screenshots
+
+### User Registration
+Secure registration with comprehensive validation including E.164 international phone number format.
+
+![Registration Page](screenshots/registration.png)
+
+### User Login
+Login interface with CSRF protection, rate limiting, and account lockout after 5 failed attempts.
+
+![Login Page](screenshots/login.png)
+
+### User Dashboard
+Main dashboard showing account overview, recent transactions, and quick actions.
+
+![Dashboard](screenshots/dashboard.png)
+
+### Two-Factor Authentication Setup
+Enable 2FA with QR code scanning for enhanced account security using TOTP (Time-based One-Time Password).
+
+![2FA Setup](screenshots/2fa-setup.png)
+
+### Two-Factor Authentication Login
+Secure login with 6-digit verification code after 2FA is enabled.
+
+![2FA Login](screenshots/2fa-login.png)
+
+---
+
+**📝 How to Add Screenshots:**
+
+1. **Take screenshots** of each page:
+   - Registration: `http://localhost:3000/register`
+   - Login: `http://localhost:3000/login`
+   - Dashboard: `http://localhost:3000/dashboard`
+   - 2FA Setup: `http://localhost:3000/profile` (Enable 2FA section)
+   - 2FA Login: `http://localhost:3000/login` (after enabling 2FA)
+
+2. **Save screenshots** in the `screenshots/` directory:
+   ```
+   screenshots/
+   ├── registration.png
+   ├── login.png
+   ├── dashboard.png
+   ├── 2fa-setup.png
+   └── 2fa-login.png
+   ```
+
+3. **Commit and push** to GitHub:
+   ```bash
+   git add screenshots/
+   git commit -m "docs: Add application screenshots"
+   git push origin main
+   ```
+
+The images will automatically display in the README once pushed to GitHub!
+
+## �👥 Demo Accounts
 
 Pre-configured test accounts for different roles:
 

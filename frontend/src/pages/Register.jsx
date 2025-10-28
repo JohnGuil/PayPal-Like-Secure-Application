@@ -125,6 +125,10 @@ const Register = () => {
                 required
                 className="input-field"
                 placeholder="+1234567890"
+                pattern="^\+?[1-9]\d{1,14}$"
+                minLength="10"
+                maxLength="15"
+                title="Enter phone number in international format (e.g., +1234567890). Only digits and optional + prefix allowed."
                 value={formData.mobile_number}
                 onChange={handleChange}
               />

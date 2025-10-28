@@ -34,12 +34,21 @@ class AuthController extends Controller
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'mobile_number' => ['required', 'string', 'max:20'],
+            'mobile_number' => [
+                'required', 
+                'string', 
+                'regex:/^\+?[1-9]\d{1,14}$/',
+                'min:10',
+                'max:15'
+            ],
             'password' => ['required', 'confirmed', Password::min(8)
                 ->mixedCase()
                 ->numbers()
                 ->symbols()],
         ], [
+            'mobile_number.regex' => 'Mobile number must be in international format (e.g., +1234567890). Only digits and optional leading + are allowed.',
+            'mobile_number.min' => 'Mobile number must be at least 10 digits.',
+            'mobile_number.max' => 'Mobile number must not exceed 15 digits.',
             'password.min' => 'Password must be at least 8 characters long.',
             'password.mixed_case' => 'Password must contain both uppercase and lowercase letters.',
             'password.numbers' => 'Password must contain at least one number.',
