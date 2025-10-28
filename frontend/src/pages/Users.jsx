@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import Select from '../components/Select';
 
 const Users = () => {
   const { user } = useAuth();
@@ -12,6 +11,8 @@ const Users = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
+  const [formLoading, setFormLoading] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,13 +77,24 @@ const Users = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormErrors({});
+    setFormLoading(true);
+    
     try {
       await api.post('/users', formData);
       setShowCreateModal(false);
       setFormData({ full_name: '', email: '', mobile_number: '', password: '', role_id: '' });
+      setFormErrors({});
       fetchUsers();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create user');
+      // Handle Laravel validation errors
+      if (err.response?.data?.errors) {
+        setFormErrors(err.response.data.errors);
+      } else {
+        setFormErrors({ general: err.response?.data?.message || 'Failed to create user' });
+      }
+    } finally {
+      setFormLoading(false);
     }
   };
 
@@ -95,11 +107,15 @@ const Users = () => {
       password: '', // Don't pre-fill password
       role_id: user.roles?.[0]?.id || user.primary_role?.id || ''
     });
+    setFormErrors({});
     setShowEditModal(true);
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    setFormErrors({});
+    setFormLoading(true);
+    
     try {
       const updateData = {
         full_name: formData.full_name,
@@ -117,9 +133,17 @@ const Users = () => {
       setShowEditModal(false);
       setEditingUser(null);
       setFormData({ full_name: '', email: '', mobile_number: '', password: '', role_id: '' });
+      setFormErrors({});
       fetchUsers();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update user');
+      // Handle Laravel validation errors
+      if (err.response?.data?.errors) {
+        setFormErrors(err.response.data.errors);
+      } else {
+        setFormErrors({ general: err.response?.data?.message || 'Failed to update user' });
+      }
+    } finally {
+      setFormLoading(false);
     }
   };
 
@@ -330,66 +354,157 @@ const Users = () => {
         {/* Create User Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="card max-w-md w-full">
-              <h2 className="text-2xl font-bold mb-4">Create New User</h2>
+            <div className="card max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Create New User</h2>
+                <button
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setFormData({ full_name: '', email: '', mobile_number: '', password: '', role_id: '' });
+                    setFormErrors({});
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {formErrors.general && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+                  {formErrors.general}
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="label">Full Name</label>
+                  <label className="label">Full Name *</label>
                   <input
                     type="text"
                     required
-                    className="input-field"
+                    className={`input-field ${formErrors.full_name ? 'border-red-500 focus:ring-red-500' : ''}`}
                     value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, full_name: e.target.value });
+                      setFormErrors({ ...formErrors, full_name: null });
+                    }}
+                    placeholder="Enter full name"
                   />
+                  {formErrors.full_name && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.full_name[0]}</p>
+                  )}
                 </div>
+
                 <div>
-                  <label className="label">Email</label>
+                  <label className="label">Email *</label>
                   <input
                     type="email"
                     required
-                    className="input-field"
+                    className={`input-field ${formErrors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value });
+                      setFormErrors({ ...formErrors, email: null });
+                    }}
+                    placeholder="user@example.com"
                   />
+                  {formErrors.email && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.email[0]}</p>
+                  )}
                 </div>
+
                 <div>
-                  <label className="label">Mobile Number</label>
+                  <label className="label">Mobile Number *</label>
                   <input
                     type="tel"
                     required
-                    className="input-field"
+                    className={`input-field ${formErrors.mobile_number ? 'border-red-500 focus:ring-red-500' : ''}`}
                     value={formData.mobile_number}
-                    onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, mobile_number: e.target.value });
+                      setFormErrors({ ...formErrors, mobile_number: null });
+                    }}
+                    placeholder="+1234567890"
+                    pattern="^\+?[1-9]\d{1,14}$"
                   />
+                  {formErrors.mobile_number && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.mobile_number[0]}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    International format (e.g., +1234567890). 10-15 digits required.
+                  </p>
                 </div>
+
                 <div>
-                  <label className="label">Password</label>
+                  <label className="label">Password *</label>
                   <input
                     type="password"
                     required
-                    className="input-field"
+                    className={`input-field ${formErrors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, password: e.target.value });
+                      setFormErrors({ ...formErrors, password: null });
+                    }}
+                    placeholder="Min 8 chars, mixed case, numbers, symbols"
                   />
+                  {formErrors.password && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.password[0]}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    Password must be at least 8 characters with uppercase, lowercase, numbers, and symbols
+                  </p>
                 </div>
+
                 <div>
-                  <Select
-                    label="Role *"
+                  <label className="label">Role *</label>
+                  <select
+                    required
+                    className={`input-field ${formErrors.role_id ? 'border-red-500 focus:ring-red-500' : ''}`}
                     value={formData.role_id}
-                    onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
-                    error={!formData.role_id ? 'Role is required' : ''}
-                    options={roles.map(role => ({ value: role.id.toString(), label: role.name }))}
-                  />
+                    onChange={(e) => {
+                      setFormData({ ...formData, role_id: e.target.value });
+                      setFormErrors({ ...formErrors, role_id: null });
+                    }}
+                  >
+                    <option value="">Select a role</option>
+                    {roles.map(role => (
+                      <option key={role.id} value={role.id}>{role.name}</option>
+                    ))}
+                  </select>
+                  {formErrors.role_id && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.role_id[0]}</p>
+                  )}
                 </div>
-                <div className="flex gap-2">
-                  <button type="submit" className="btn-primary flex-1" disabled={!formData.role_id}>
-                    Create User
+
+                <div className="flex gap-2 pt-4">
+                  <button 
+                    type="submit" 
+                    className="btn-primary flex-1 flex items-center justify-center gap-2"
+                    disabled={formLoading}
+                  >
+                    {formLoading ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Creating...
+                      </>
+                    ) : (
+                      'Create User'
+                    )}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowCreateModal(false)}
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      setFormData({ full_name: '', email: '', mobile_number: '', password: '', role_id: '' });
+                      setFormErrors({});
+                    }}
                     className="btn-secondary flex-1"
+                    disabled={formLoading}
                   >
                     Cancel
                   </button>
@@ -402,60 +517,149 @@ const Users = () => {
         {/* Edit User Modal */}
         {showEditModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="card max-w-md w-full">
-              <h2 className="text-2xl font-bold mb-4">Edit User</h2>
+            <div className="card max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Edit User</h2>
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingUser(null);
+                    setFormData({ full_name: '', email: '', mobile_number: '', password: '', role_id: '' });
+                    setFormErrors({});
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {formErrors.general && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+                  {formErrors.general}
+                </div>
+              )}
+
               <form onSubmit={handleUpdate} className="space-y-4">
                 <div>
-                  <label className="label">Full Name</label>
+                  <label className="label">Full Name *</label>
                   <input
                     type="text"
                     required
-                    className="input-field"
+                    className={`input-field ${formErrors.full_name ? 'border-red-500 focus:ring-red-500' : ''}`}
                     value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, full_name: e.target.value });
+                      setFormErrors({ ...formErrors, full_name: null });
+                    }}
+                    placeholder="Enter full name"
                   />
+                  {formErrors.full_name && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.full_name[0]}</p>
+                  )}
                 </div>
+
                 <div>
-                  <label className="label">Email</label>
+                  <label className="label">Email *</label>
                   <input
                     type="email"
                     required
-                    className="input-field"
+                    className={`input-field ${formErrors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value });
+                      setFormErrors({ ...formErrors, email: null });
+                    }}
+                    placeholder="user@example.com"
                   />
+                  {formErrors.email && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.email[0]}</p>
+                  )}
                 </div>
+
                 <div>
-                  <label className="label">Mobile Number</label>
+                  <label className="label">Mobile Number *</label>
                   <input
                     type="tel"
-                    className="input-field"
+                    required
+                    className={`input-field ${formErrors.mobile_number ? 'border-red-500 focus:ring-red-500' : ''}`}
                     value={formData.mobile_number}
-                    onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, mobile_number: e.target.value });
+                      setFormErrors({ ...formErrors, mobile_number: null });
+                    }}
+                    placeholder="+1234567890"
+                    pattern="^\+?[1-9]\d{1,14}$"
                   />
+                  {formErrors.mobile_number && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.mobile_number[0]}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    International format (e.g., +1234567890). 10-15 digits required.
+                  </p>
                 </div>
+
                 <div>
-                  <label className="label">Password (leave blank to keep current)</label>
+                  <label className="label">Password (optional)</label>
                   <input
                     type="password"
-                    className="input-field"
+                    className={`input-field ${formErrors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, password: e.target.value });
+                      setFormErrors({ ...formErrors, password: null });
+                    }}
                     placeholder="Leave blank to keep current password"
                   />
+                  {formErrors.password && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.password[0]}</p>
+                  )}
+                  {formData.password && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Password must be at least 8 characters with uppercase, lowercase, numbers, and symbols
+                    </p>
+                  )}
                 </div>
+
                 <div>
-                  <Select
-                    label="Role *"
+                  <label className="label">Role *</label>
+                  <select
+                    required
+                    className={`input-field ${formErrors.role_id ? 'border-red-500 focus:ring-red-500' : ''}`}
                     value={formData.role_id}
-                    onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
-                    error={!formData.role_id ? 'Role is required' : ''}
-                    options={roles.map(role => ({ value: role.id.toString(), label: role.name }))}
-                  />
+                    onChange={(e) => {
+                      setFormData({ ...formData, role_id: e.target.value });
+                      setFormErrors({ ...formErrors, role_id: null });
+                    }}
+                  >
+                    <option value="">Select a role</option>
+                    {roles.map(role => (
+                      <option key={role.id} value={role.id}>{role.name}</option>
+                    ))}
+                  </select>
+                  {formErrors.role_id && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.role_id[0]}</p>
+                  )}
                 </div>
-                <div className="flex gap-2">
-                  <button type="submit" className="btn-primary flex-1" disabled={!formData.role_id}>
-                    Update User
+
+                <div className="flex gap-2 pt-4">
+                  <button 
+                    type="submit" 
+                    className="btn-primary flex-1 flex items-center justify-center gap-2"
+                    disabled={formLoading}
+                  >
+                    {formLoading ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Updating...
+                      </>
+                    ) : (
+                      'Update User'
+                    )}
                   </button>
                   <button
                     type="button"
@@ -463,8 +667,10 @@ const Users = () => {
                       setShowEditModal(false);
                       setEditingUser(null);
                       setFormData({ full_name: '', email: '', mobile_number: '', password: '', role_id: '' });
+                      setFormErrors({});
                     }}
                     className="btn-secondary flex-1"
+                    disabled={formLoading}
                   >
                     Cancel
                   </button>

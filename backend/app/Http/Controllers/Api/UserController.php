@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
@@ -86,13 +87,31 @@ class UserController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'full_name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'mobile_number' => 'nullable|string|max:20',
-            'password' => 'required|string|min:8',
-            'role_id' => 'required|exists:roles,id',
-            'role_ids' => 'sometimes|array',
-            'role_ids.*' => 'exists:roles,id'
+            'full_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'mobile_number' => [
+                'required', 
+                'string', 
+                'regex:/^\+?[1-9]\d{1,14}$/',
+                'min:10',
+                'max:15'
+            ],
+            'password' => ['required', Password::min(8)
+                ->mixedCase()
+                ->numbers()
+                ->symbols()],
+            'role_id' => ['required', 'exists:roles,id'],
+            'role_ids' => ['sometimes', 'array'],
+            'role_ids.*' => ['exists:roles,id']
+        ], [
+            'mobile_number.required' => 'Mobile number is required.',
+            'mobile_number.regex' => 'Mobile number must be in international format (e.g., +1234567890). Only digits and optional leading + are allowed.',
+            'mobile_number.min' => 'Mobile number must be at least 10 digits.',
+            'mobile_number.max' => 'Mobile number must not exceed 15 digits.',
+            'password.min' => 'Password must be at least 8 characters long.',
+            'password.mixed_case' => 'Password must contain both uppercase and lowercase letters.',
+            'password.numbers' => 'Password must contain at least one number.',
+            'password.symbols' => 'Password must contain at least one special character.',
         ]);
 
         if ($validator->fails()) {
@@ -162,7 +181,7 @@ class UserController extends Controller
         ];
 
         $validator = Validator::make($request->all(), [
-            'full_name' => 'sometimes|required|string|max:255',
+            'full_name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => [
                 'sometimes',
                 'required',
@@ -171,11 +190,30 @@ class UserController extends Controller
                 'max:255',
                 Rule::unique('users')->ignore($user->id)
             ],
-            'mobile_number' => 'nullable|string|max:20',
-            'password' => 'nullable|string|min:8',
-            'role_id' => 'required|exists:roles,id',
-            'role_ids' => 'sometimes|array',
-            'role_ids.*' => 'exists:roles,id'
+            'mobile_number' => [
+                'sometimes',
+                'required', 
+                'string', 
+                'regex:/^\+?[1-9]\d{1,14}$/',
+                'min:10',
+                'max:15'
+            ],
+            'password' => ['nullable', Password::min(8)
+                ->mixedCase()
+                ->numbers()
+                ->symbols()],
+            'role_id' => ['required', 'exists:roles,id'],
+            'role_ids' => ['sometimes', 'array'],
+            'role_ids.*' => ['exists:roles,id']
+        ], [
+            'mobile_number.required' => 'Mobile number is required.',
+            'mobile_number.regex' => 'Mobile number must be in international format (e.g., +1234567890). Only digits and optional leading + are allowed.',
+            'mobile_number.min' => 'Mobile number must be at least 10 digits.',
+            'mobile_number.max' => 'Mobile number must not exceed 15 digits.',
+            'password.min' => 'Password must be at least 8 characters long.',
+            'password.mixed_case' => 'Password must contain both uppercase and lowercase letters.',
+            'password.numbers' => 'Password must contain at least one number.',
+            'password.symbols' => 'Password must contain at least one special character.',
         ]);
 
         if ($validator->fails()) {
