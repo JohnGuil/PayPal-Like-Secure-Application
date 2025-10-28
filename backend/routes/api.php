@@ -22,6 +22,15 @@ use App\Http\Controllers\Api\NotificationController;
 |--------------------------------------------------------------------------
 */
 
+// Health check endpoint (no authentication required)
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'timestamp' => now()->toDateTimeString(),
+        'service' => 'PayPal-Like Secure Application API'
+    ]);
+});
+
 // Public routes (Rate limited to prevent brute force attacks)
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');

@@ -29,8 +29,9 @@ services:
     restart: unless-stopped
     working_dir: /var/www
     volumes:
-      - ./backend:/var/www
-      - ./backend/vendor:/var/www/vendor
+      - ./backend:/var/www:cached
+      - backend_vendor:/var/www/vendor
+      - backend_cache:/var/www/bootstrap/cache
     ports:
       - "8000:8000"
     environment:
@@ -47,10 +48,18 @@ services:
         condition: service_healthy
     networks:
       - paypal_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     command: >
       sh -c "composer install &&
              php artisan key:generate --force &&
-             php artisan config:clear &&
+             php artisan config:cache &&
+             php artisan route:cache &&
+             php artisan view:cache &&
              php artisan migrate --force &&
              php artisan serve --host=0.0.0.0 --port=8000"
 
@@ -70,7 +79,8 @@ services:
     environment:
       - VITE_API_URL=http://localhost:8000
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     networks:
       - paypal_network
     command: npm run dev -- --host
@@ -81,4 +91,8 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  backend_vendor:
+    driver: local
+  backend_cache:
     driver: local

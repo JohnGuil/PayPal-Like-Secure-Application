@@ -27,8 +27,8 @@ class TransactionSeeder extends Seeder
         // Create transactions over the last 90 days with varying patterns
         $transactionCount = 0;
         
-        // Generate transactions for each day in the last 90 days
-        for ($day = 90; $day >= 0; $day--) {
+        // Generate transactions for each day in the last 90 days (excluding today)
+        for ($day = 90; $day >= 1; $day--) {
             $date = $now->copy()->subDays($day);
             
             // More transactions on weekdays, fewer on weekends

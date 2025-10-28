@@ -9,6 +9,7 @@ use App\Models\LoginLog;
 use App\Services\SecurityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class AnalyticsController extends Controller
@@ -316,6 +317,14 @@ class AnalyticsController extends Controller
      */
     public function dashboard()
     {
+        // Cache dashboard data for 5 minutes (300 seconds)
+        return Cache::remember('analytics_dashboard', 300, function () {
+            return $this->getDashboardData();
+        });
+    }
+
+    private function getDashboardData()
+    {
         $today = Carbon::today();
         $yesterday = Carbon::yesterday();
         $thisMonth = Carbon::now()->startOfMonth();
@@ -605,6 +614,15 @@ class AnalyticsController extends Controller
     public function revenueVolumeChart(Request $request)
     {
         $days = $request->input('days', 7); // Default to 7 days
+        
+        // Cache for 5 minutes
+        return Cache::remember("revenue_volume_chart_{$days}", 300, function () use ($days) {
+            return $this->getRevenueVolumeData($days);
+        });
+    }
+
+    private function getRevenueVolumeData($days)
+    {
         $startDate = Carbon::now()->subDays($days);
 
         // Daily transaction volume and revenue
@@ -652,6 +670,15 @@ class AnalyticsController extends Controller
     public function transactionTypeBreakdown(Request $request)
     {
         $days = $request->input('days', 30); // Default to 30 days
+        
+        // Cache for 5 minutes
+        return Cache::remember("transaction_type_breakdown_{$days}", 300, function () use ($days) {
+            return $this->getTransactionTypeBreakdownData($days);
+        });
+    }
+
+    private function getTransactionTypeBreakdownData($days)
+    {
         $startDate = Carbon::now()->subDays($days);
 
         $breakdown = Transaction::where('created_at', '>=', $startDate)
@@ -684,6 +711,15 @@ class AnalyticsController extends Controller
     public function userGrowthChart(Request $request)
     {
         $days = $request->input('days', 30); // Default to 30 days
+        
+        // Cache for 5 minutes
+        return Cache::remember("user_growth_chart_{$days}", 300, function () use ($days) {
+            return $this->getUserGrowthData($days);
+        });
+    }
+
+    private function getUserGrowthData($days)
+    {
         $startDate = Carbon::now()->subDays($days);
 
         // Daily new user registrations
@@ -731,6 +767,15 @@ class AnalyticsController extends Controller
     public function hourlyActivity(Request $request)
     {
         $days = $request->input('days', 7); // Default to 7 days
+        
+        // Cache for 5 minutes
+        return Cache::remember("hourly_activity_{$days}", 300, function () use ($days) {
+            return $this->getHourlyActivityData($days);
+        });
+    }
+
+    private function getHourlyActivityData($days)
+    {
         $startDate = Carbon::now()->subDays($days);
 
         $hourlyData = Transaction::where('created_at', '>=', $startDate)
@@ -769,6 +814,15 @@ class AnalyticsController extends Controller
     public function kpiComparison(Request $request)
     {
         $period = $request->input('period', 'week'); // week, month, quarter
+        
+        // Cache for 5 minutes
+        return Cache::remember("kpi_comparison_{$period}", 300, function () use ($period) {
+            return $this->getKpiComparisonData($period);
+        });
+    }
+
+    private function getKpiComparisonData($period)
+    {
         
         $currentStart = match($period) {
             'week' => Carbon::now()->startOfWeek(),

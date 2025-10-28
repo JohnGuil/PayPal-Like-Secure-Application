@@ -130,12 +130,42 @@ This project implements a comprehensive secure application system similar to Pay
 
 ## 🚀 Quick Start
 
+> **🔄 Cloning to a new device?** Just follow the steps below - Docker ensures everything works identically everywhere!
+
 ### Prerequisites
 - Docker Desktop installed and running
 - At least 4GB RAM available
 - Ports 3000, 8000, and 5432 available
 
-### Installation (5 minutes)
+### Easy Installation (Recommended)
+
+**Windows PowerShell:**
+```powershell
+# Clone and start
+git clone https://github.com/JohnGuil/PayPal-Like-Secure-Application.git
+cd PayPal-Like-Secure-Application
+Copy-Item backend\.env.example backend\.env
+.\start.ps1
+```
+
+**macOS/Linux:**
+```bash
+# Clone and start
+git clone https://github.com/JohnGuil/PayPal-Like-Secure-Application.git
+cd PayPal-Like-Secure-Application
+cp backend/.env.example backend/.env
+chmod +x start.sh
+./start.sh
+```
+
+The startup script will:
+- ✅ Start all Docker containers
+- ✅ Wait for database to be ready
+- ✅ Wait for backend to be ready (30-60 seconds)
+- ✅ Wait for frontend to be ready
+- ✅ Open the application in your browser automatically
+
+### Manual Installation
 
 1. **Clone the repository**
    ```bash
@@ -160,6 +190,11 @@ This project implements a comprehensive secure application system similar to Pay
    ```
    
    Wait 3-5 minutes for containers to build and start.
+   
+   **⚠️ Important:** After containers start, wait 30-60 seconds for the backend to fully initialize. Check readiness:
+   ```bash
+   curl http://localhost:8000/api/health
+   ```
 
 4. **Access the application**
    - Frontend: http://localhost:3000
@@ -264,11 +299,22 @@ PayPal-Like-Secure-Application/
 │   └── public/                    # Static Assets
 │
 ├── docker-compose.yml             # Docker Configuration
-├── README.md                      # This file
-├── QUICKSTART.md                  # Quick start guide
+├── README.md                      # Main documentation (this file)
 ├── API_TESTING_GUIDE.md          # API testing instructions
-├── DEPLOYMENT.md                  # Deployment guide
-└── SECURITY_CHECKLIST.md         # Security review checklist
+├── SECURITY_CHECKLIST.md         # Security review checklist
+├── SECURITY_TESTING_GUIDE.md     # Security testing procedures
+├── SECURITY_TEST_REPORT.md       # Latest security test results
+├── FEATURE_TESTING_REPORT.md     # Feature testing results
+├── PROJECT_STATUS.md              # Executive project summary
+├── PERFORMANCE_OPTIMIZATION.md   # Performance tuning guide
+├── PERFORMANCE_FIX_SUMMARY.md    # Performance improvements summary
+├── DOCKER_RESTART_GUIDE.md       # Docker restart timing guide
+├── DEPLOYMENT.md                  # Production deployment guide
+├── DEMO_ACCOUNTS.md              # Demo account credentials
+├── test-security.ps1              # Automated security tests (Windows)
+├── test-api.sh                    # Automated API tests (Linux/macOS)
+├── start.ps1                      # Startup script with health checks (Windows)
+└── start.sh                       # Startup script with health checks (Linux/macOS)
 ```
 
 ## 🔌 API Endpoints
@@ -409,9 +455,47 @@ GET    /api/audit-logs            # View audit logs
 
 ## 🧪 Testing
 
-### Automated Testing
+### Security Test Results ✅
 
-Run the automated test script:
+**Latest Test Date:** October 28, 2025  
+**Overall Security Score:** 97/100 (Excellent)
+
+| Category | Score | Status |
+|----------|-------|--------|
+| Authentication Security | 20/20 | ✅ Perfect |
+| Two-Factor Authentication | 23/25 | ✅ Excellent |
+| Session & Token Management | 15/15 | ✅ Perfect |
+| Input Validation | 15/15 | ✅ Perfect |
+| Secure Configuration | 10/10 | ✅ Perfect |
+| Logging and Audit | 9/10 | ✅ Excellent |
+| General Observations | 5/5 | ✅ Perfect |
+
+**Key Achievements:**
+- ✅ Password hashing with bcrypt (cost factor: 12)
+- ✅ CSRF protection enabled
+- ✅ Rate limiting active (5 req/min on login)
+- ✅ SQL injection prevention verified
+- ✅ XSS protection confirmed
+- ✅ No hardcoded credentials found
+- ✅ Complete audit trail implemented
+
+**Performance Results:**
+- API Health Check: **57ms** (was 2,626ms - **46x faster**)
+- Login Endpoint: ~300ms (was 2,800ms - **9x faster**)
+- Protected Routes: ~150ms (was 1,200ms - **8x faster**)
+
+**Full Security Report:** See [SECURITY_TEST_REPORT.md](SECURITY_TEST_REPORT.md)
+
+### Automated Security Testing
+
+Run the comprehensive security test suite:
+
+**Windows PowerShell:**
+```powershell
+.\test-security.ps1
+```
+
+**Linux/macOS:**
 ```bash
 chmod +x test-api.sh
 ./test-api.sh
@@ -448,13 +532,8 @@ chmod +x test-api.sh
      -H "Authorization: Bearer TOKEN"
    ```
 
-**Complete Testing Guide:** See [API_TESTING_GUIDE.md](API_TESTING_GUIDE.md)
-
-### Test Coverage
-- ✅ 45/45 Core Feature Tests Passed
-- ✅ Security Tests: 15/15 Passed
-- ✅ Business Logic: 12/12 Passed
-- ✅ Data Integrity: 8/8 Passed
+**Complete Testing Guide:** See [API_TESTING_GUIDE.md](API_TESTING_GUIDE.md)  
+**Security Testing Guide:** See [SECURITY_TESTING_GUIDE.md](SECURITY_TESTING_GUIDE.md)
 - ✅ Frontend Tests: 10/10 Passed
 
 ## 🔧 Troubleshooting
@@ -513,11 +592,26 @@ docker exec -it paypal_backend php artisan cache:clear
 
 ## 📚 Additional Documentation
 
-- [QUICKSTART.md](QUICKSTART.md) - Get started in 5 minutes
-- [API_TESTING_GUIDE.md](API_TESTING_GUIDE.md) - Complete API documentation
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
-- [SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md) - Security review checklist
+### Getting Started
 - [DEMO_ACCOUNTS.md](DEMO_ACCOUNTS.md) - Test account credentials
+- [DOCKER_RESTART_GUIDE.md](DOCKER_RESTART_GUIDE.md) - Docker restart timing and best practices
+
+### Testing & Security
+- [SECURITY_TEST_REPORT.md](SECURITY_TEST_REPORT.md) - **Latest security test results (97/100 score)**
+- [SECURITY_TESTING_GUIDE.md](SECURITY_TESTING_GUIDE.md) - Step-by-step security testing procedures
+- [SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md) - Comprehensive security review checklist
+- [API_TESTING_GUIDE.md](API_TESTING_GUIDE.md) - Complete API documentation and testing
+
+### Performance & Deployment
+- [PERFORMANCE_OPTIMIZATION.md](PERFORMANCE_OPTIMIZATION.md) - Complete performance tuning guide
+- [PERFORMANCE_FIX_SUMMARY.md](PERFORMANCE_FIX_SUMMARY.md) - Performance improvements summary (46x faster)
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
+
+### Automated Testing Scripts
+- `test-security.ps1` - Windows PowerShell security test suite
+- `test-api.sh` - Linux/macOS API test suite
+- `start.ps1` - Windows startup script with health checks
+- `start.sh` - Linux/macOS startup script with health checks
 
 ## 👨‍💻 Contributors
 

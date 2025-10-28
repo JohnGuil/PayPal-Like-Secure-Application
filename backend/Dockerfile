@@ -16,21 +16,24 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
     && docker-php-ext-install pdo pdo_pgsql pgsql mbstring exif pcntl bcmath gd
 
+# Install OPcache for better PHP performance
+RUN docker-php-ext-install opcache
+
+# Configure PHP for better performance
+RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.interned_strings_buffer=16" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.max_accelerated_files=10000" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.revalidate_freq=0" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.validate_timestamps=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "realpath_cache_size=4096K" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "realpath_cache_ttl=600" >> /usr/local/etc/php/conf.d/opcache.ini
+
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copy application files
 COPY . /var/www
-
-# Create necessary directories and set permissions
-RUN mkdir -p /var/www/storage/framework/sessions \
-    && mkdir -p /var/www/storage/framework/views \
-    && mkdir -p /var/www/storage/framework/cache \
-    && mkdir -p /var/www/storage/logs \
-    && mkdir -p /var/www/bootstrap/cache \
-    && chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage \
-    && chmod -R 755 /var/www/bootstrap/cache
 
 # Expose port
 EXPOSE 8000
